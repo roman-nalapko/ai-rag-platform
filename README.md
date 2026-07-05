@@ -1,13 +1,12 @@
-# AI RAG Platform
+# AI RAG Platform — Production RAG Backend
 
-[![CI](https://github.com/YOUR_GITHUB_USERNAME/ai-rag-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/ai-rag-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml)
 
-AI RAG Platform is a production-oriented, local-first backend that demonstrates
-the work expected from an AI/LLM Engineer: asynchronous document ingestion,
-vector indexing, tenant-scoped semantic retrieval, grounded question answering,
-persistent chat and token streaming—supported by migrations, observability,
-evaluation, automated tests, Docker, and CI. It runs with FastAPI, PostgreSQL,
-Qdrant, and LM Studio, requiring no paid API or cloud LLM key.
+Production-oriented, local-first RAG backend powered by LM Studio local models.
+Multi-tenant knowledge bases isolate ingestion, retrieval, and conversation data.
+Grounded question answering supports source attribution and SSE streaming chat.
+An offline evaluation pipeline measures answer quality against expected facts.
+Docker Compose and GitHub Actions make the complete stack reproducible and CI-ready.
 
 **Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
 [architecture](docs/ARCHITECTURE.md) · [portfolio/interview guide](docs/PORTFOLIO.md) ·
@@ -67,15 +66,12 @@ module and data-flow description.
 
 ## Screenshots
 
-Replace these placeholders with captures before sharing the repository publicly:
+Replace these links with real captures as the public demo evolves:
 
-| Portfolio view | Placeholder path | What to capture |
-| --- | --- | --- |
-| API surface | `docs/screenshots/swagger-ui.png` | Swagger endpoints and schemas |
-| Retrieval | `docs/screenshots/semantic-search.png` | Ranked chunks with scores |
-| Streaming chat | `docs/screenshots/streaming-qa.png` | Live SSE token response |
-| Vector store | `docs/screenshots/qdrant-dashboard.png` | `document_chunks` collection |
-| Quality gates | `docs/screenshots/ci-pipeline.png` | Green Ruff, pytest, and Docker jobs |
+- [API Documentation (FastAPI Swagger)](docs/screenshots/api-documentation.png)
+- [Qdrant Vector Dashboard](docs/screenshots/qdrant-vector-dashboard.png)
+- [RAG Chat Flow](docs/screenshots/rag-chat-flow.png)
+- [Evaluation Report](docs/screenshots/evaluation-report.png)
 
 ## Tech stack
 
@@ -398,8 +394,8 @@ ruff check .
 ```
 
 GitHub Actions runs Ruff, pytest, and a production Docker build on every push
-and pull request. Replace `YOUR_GITHUB_USERNAME` in the CI badge after creating
-the GitHub repository. See [Continuous Integration](docs/CI.md) for pipeline
+and pull request. The badge at the top of this README links directly to the
+repository workflow. See [Continuous Integration](docs/CI.md) for pipeline
 details and local reproduction commands.
 
 ## Repository structure
@@ -425,8 +421,10 @@ docs/
 ├── DATABASE.md
 ├── DEMO_FLOW.md
 ├── EVALUATION.md
+├── GITHUB_SETUP.md
 ├── OBSERVABILITY.md
 ├── PORTFOLIO.md
+├── screenshots/
 └── TESTING.md
 tests/          # Fast async API and validation test suite
 ```
