@@ -1,0 +1,7 @@
+[
+  {
+    "question": "What dependencies does the project use?",
+    "expected_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
+    "knowledge_base_id": "optional-placeholder"
+  }
+]

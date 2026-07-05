@@ -1,0 +1,32 @@
+AI RAG Platform — Technical Overview
+
+AI RAG Platform is a local-first Retrieval-Augmented Generation backend built
+with Python 3.14 and FastAPI. The API uses asynchronous request handling,
+Pydantic validation, SQLAlchemy async sessions, and Alembic migrations.
+
+PostgreSQL 17 is the relational system of record. It stores users, knowledge
+bases, document metadata, extracted chunks, conversations, and chat messages.
+Documents belong to a knowledge base, and conversation history is scoped to the
+same knowledge base.
+
+Qdrant is the vector database. Document chunks are embedded through the local
+LM Studio OpenAI-compatible API and indexed in Qdrant with cosine distance.
+Each vector payload includes knowledge-base, document, and chunk identifiers so
+semantic search can enforce knowledge-base isolation.
+
+Document ingestion accepts UTF-8 TXT and PDF files. The upload endpoint stores
+metadata and the raw file, then schedules background processing. The worker
+extracts text, creates overlapping chunks, generates embeddings, writes vectors
+to Qdrant, and updates the document status from pending to processing and then
+indexed. Failures are recorded with a failed status and a safe error message.
+
+Question answering retrieves the highest-scoring chunks and sends only that
+context to the local chat model. The prompt requires grounded answers and a
+deterministic fallback when the documents do not contain enough information.
+The API supports source attribution, persistent conversation memory, and
+Server-Sent Events for streaming answers.
+
+The platform includes structured JSON logging, request correlation IDs, AI and
+retrieval latency measurements, an offline RAG evaluation script, pytest API
+contract tests, Ruff linting, Docker Compose, and GitHub Actions CI. The local
+stack does not require paid APIs or OpenAI credentials.

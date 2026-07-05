@@ -1,0 +1,41 @@
+# Python environments
+venv/
+.venv/
+env/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Coverage and build artifacts
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local database and vector-store data
+postgres_data/
+qdrant_data/
+data/postgres/
+data/qdrant/
+storage/uploads/
+
+# Logs
+logs/
+*.log
+
+# IDE and operating system files
+.DS_Store
+.idea/
+.vscode/

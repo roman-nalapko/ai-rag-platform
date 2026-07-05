@@ -1,0 +1,9 @@
+Alembic migrations for the AI RAG Platform PostgreSQL schema.
+
+Create a migration after changing SQLAlchemy models:
+
+    alembic revision --autogenerate -m "describe change"
+
+Apply all pending migrations:
+
+    alembic upgrade head
