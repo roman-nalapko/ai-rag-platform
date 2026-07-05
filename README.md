@@ -522,5 +522,4 @@ tests/          # Fast async API and validation test suite
 
 ## License
 
-No license has been selected yet. Add a license before public redistribution or
-external contributions.
+This project is licensed under the MIT License.
