@@ -1,16 +1,51 @@
-# AI RAG Platform — Production RAG Backend
+# AI RAG Platform
 
 [![CI](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml)
 
-Production-oriented, local-first RAG backend powered by LM Studio local models.
-Multi-tenant knowledge bases isolate ingestion, retrieval, and conversation data.
-Grounded question answering supports source attribution and SSE streaming chat.
-An offline evaluation pipeline measures answer quality against expected facts.
-Docker Compose and GitHub Actions make the complete stack reproducible and CI-ready.
+**Production-ready local-first RAG platform for building private AI assistants
+over documents.**
+
+**Built with:** FastAPI · PostgreSQL · Qdrant · LM Studio · Docker
+
+## Features
+
+- Async document ingestion pipeline
+- PDF/TXT processing
+- Vector search
+- Multi-tenant knowledge bases
+- Conversation memory
+- Streaming AI responses
+- RAG evaluation
+- Structured observability
+- CI/CD pipeline
+
+## Architecture preview
+
+```text
+Document
+   ↓
+Chunking
+   ↓
+Embeddings
+   ↓
+Qdrant
+   ↓
+Retriever
+   ↓
+LLM
+   ↓
+Answer + Sources
+```
+
+## Why this project exists
+
+This project demonstrates production AI engineering patterns: clean
+architecture, async processing, vector databases, LLM abstraction, evaluation
+and deployment workflows.
 
 **Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
-[architecture](docs/ARCHITECTURE.md) · [portfolio/interview guide](docs/PORTFOLIO.md) ·
-[API examples](docs/API_EXAMPLES.md)
+[architecture](docs/ARCHITECTURE.md) · [interview topics](docs/INTERVIEW.md) ·
+[resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md)
 
 ## Quick start
 
@@ -75,15 +110,15 @@ Replace these links with real captures as the public demo evolves:
 
 ## Tech stack
 
-| Area | Technology |
-| --- | --- |
-| Language | Python 3.14 |
-| API | FastAPI, Pydantic v2, Uvicorn |
-| Database | PostgreSQL 17, SQLAlchemy async, asyncpg |
-| Vector store | Qdrant, async Qdrant client, cosine distance |
-| Local AI | LM Studio, OpenAI-compatible API, official OpenAI Python SDK |
-| Document processing | pypdf, UTF-8 text extraction |
-| Infrastructure | Docker Compose |
+| Area                | Technology                                                   |
+| ------------------- | ------------------------------------------------------------ |
+| Language            | Python 3.14                                                  |
+| API                 | FastAPI, Pydantic v2, Uvicorn                                |
+| Database            | PostgreSQL 17, SQLAlchemy async, asyncpg                     |
+| Vector store        | Qdrant, async Qdrant client, cosine distance                 |
+| Local AI            | LM Studio, OpenAI-compatible API, official OpenAI Python SDK |
+| Document processing | pypdf, UTF-8 text extraction                                 |
+| Infrastructure      | Docker Compose                                               |
 
 ## Key features
 
@@ -106,20 +141,20 @@ Replace these links with real captures as the public demo evolves:
 
 ## API
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | API process health |
-| `GET` | `/health/llm` | LM Studio embedding health and dimensions |
-| `POST` | `/users` | Create a user account record |
-| `POST` | `/knowledge-bases` | Create a user-owned knowledge base |
-| `GET` | `/knowledge-bases?user_id=...` | List one user's knowledge bases |
-| `POST` | `/conversations` | Start a conversation in a knowledge base |
-| `GET` | `/conversations/{id}/messages` | Read a conversation's chat history |
-| `POST` | `/documents/upload` | Store a PDF/TXT file and enqueue indexing |
-| `GET` | `/documents/{id}` | Read processing status, chunk count, and errors |
-| `POST` | `/search` | Semantic search within one knowledge base |
-| `POST` | `/qa/ask` | Knowledge-base-scoped RAG answer with sources |
-| `POST` | `/qa/ask/stream` | Stream a grounded answer over SSE |
+| Method | Endpoint                       | Purpose                                         |
+| ------ | ------------------------------ | ----------------------------------------------- |
+| `GET`  | `/health`                      | API process health                              |
+| `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
+| `POST` | `/users`                       | Create a user account record                    |
+| `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
+| `GET`  | `/knowledge-bases?user_id=...` | List one user's knowledge bases                 |
+| `POST` | `/conversations`               | Start a conversation in a knowledge base        |
+| `GET`  | `/conversations/{id}/messages` | Read a conversation's chat history              |
+| `POST` | `/documents/upload`            | Store a PDF/TXT file and enqueue indexing       |
+| `GET`  | `/documents/{id}`              | Read processing status, chunk count, and errors |
+| `POST` | `/search`                      | Semantic search within one knowledge base       |
+| `POST` | `/qa/ask`                      | Knowledge-base-scoped RAG answer with sources   |
+| `POST` | `/qa/ask/stream`               | Stream a grounded answer over SSE               |
 
 Interactive documentation is available at
 [http://localhost:8000/docs](http://localhost:8000/docs) while the API is
@@ -365,7 +400,12 @@ logs are emitted as JSON to stdout, while AI/RAG operations report
 `duration_ms` without logging document content, prompts, headers, or secrets.
 
 ```json
-{"event":"request_completed","request_id":"...","status_code":200,"duration_ms":42.17}
+{
+  "event": "request_completed",
+  "request_id": "...",
+  "status_code": 200,
+  "duration_ms": 42.17
+}
 ```
 
 Set `LOG_LEVEL` in `.env` to control verbosity. See
@@ -422,8 +462,10 @@ docs/
 ├── DEMO_FLOW.md
 ├── EVALUATION.md
 ├── GITHUB_SETUP.md
+├── INTERVIEW.md
 ├── OBSERVABILITY.md
 ├── PORTFOLIO.md
+├── RESUME.md
 ├── screenshots/
 └── TESTING.md
 tests/          # Fast async API and validation test suite
