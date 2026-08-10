@@ -13,7 +13,7 @@ API_PORT ?= 8000
 API_URL ?= http://localhost:8000
 KNOWLEDGE_BASE_ID ?=
 
-.PHONY: help install lint test check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo-flow
+.PHONY: help install lint test check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo demo-flow
 
 help:
 	@echo "AI RAG Platform commands"
@@ -37,6 +37,7 @@ help:
 	@echo "Demo:"
 	@echo "  make health          Check API health"
 	@echo "  make health-llm      Check LM Studio embedding health"
+	@echo "  make demo            Run automated local demo flow"
 	@echo "  make eval KNOWLEDGE_BASE_ID=<uuid>"
 	@echo "  make demo-flow       Print guided demo path"
 
@@ -84,6 +85,9 @@ health-llm:
 eval:
 	@test -n "$(KNOWLEDGE_BASE_ID)" || (echo "Set KNOWLEDGE_BASE_ID=<uuid>" && exit 1)
 	$(PYTHON) evaluation/run_eval.py --knowledge-base-id "$(KNOWLEDGE_BASE_ID)"
+
+demo:
+	$(PYTHON) scripts/run_demo.py --api-url "$(API_URL)"
 
 demo-flow:
 	@echo "Follow docs/DEMO_FLOW.md"

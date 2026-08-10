@@ -80,6 +80,7 @@ make migrate
 make run
 make lint
 make test
+make demo
 ```
 
 For Docker-only API startup:
@@ -475,6 +476,7 @@ app/
 migrations/     # Versioned Alembic database migrations
 evaluation/     # Local RAG quality dataset and evaluation runner
 examples/       # Demo-ready sample document
+scripts/        # Local automation helpers, including the full demo runner
 docs/
 ├── API_EXAMPLES.md
 ├── ARCHITECTURE.md

@@ -5,6 +5,27 @@ This walkthrough demonstrates the complete local RAG lifecycle using
 `http://localhost:8000`, LM Studio is running, migrations are applied, and
 `jq` is installed for extracting IDs from JSON.
 
+## Automated demo
+
+You can run the complete flow without manually copying IDs:
+
+```bash
+make demo
+```
+
+Equivalent direct command:
+
+```bash
+python scripts/run_demo.py --api-url http://localhost:8000
+```
+
+The script creates a unique demo user, creates a knowledge base, uploads
+`examples/sample_document.txt`, polls indexing status, runs semantic search,
+and asks a grounded RAG question. It prints the created `user_id`,
+`knowledge_base_id`, and `document_id` at the end.
+
+Use the manual steps below when you want to inspect each API request.
+
 ## 1. Create a user
 
 ```bash
