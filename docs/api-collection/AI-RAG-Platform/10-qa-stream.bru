@@ -1,0 +1,24 @@
+meta {
+  name: 10 QA Stream
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{base_url}}/qa/ask/stream
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "knowledge_base_id": "{{knowledge_base_id}}",
+    "question": "Explain the document indexing lifecycle.",
+    "limit": 5
+  }
+}

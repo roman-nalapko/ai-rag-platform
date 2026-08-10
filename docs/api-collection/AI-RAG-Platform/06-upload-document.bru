@@ -1,0 +1,21 @@
+meta {
+  name: 06 Upload Document
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/documents/upload
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  knowledge_base_id: {{knowledge_base_id}}
+  file: @examples/sample_document.txt
+}
+
+docs {
+  Run Bruno from the repository root so the sample file path resolves.
+  Copy the returned `id` into the `document_id` environment variable.
+}

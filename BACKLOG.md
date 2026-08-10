@@ -404,7 +404,7 @@ Out of scope:
 
 ### [P2] Add API collection for demos
 
-Status: Backlog  
+Status: Done
 Area: docs / dx
 
 Problem:
@@ -418,8 +418,8 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Collection is committed without secrets.
-- [ ] Docs explain import and environment variables.
+- [x] Collection is committed without secrets.
+- [x] Docs explain import and environment variables.
 
 Out of scope:
 

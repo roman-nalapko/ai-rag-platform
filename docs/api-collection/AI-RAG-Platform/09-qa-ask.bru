@@ -1,0 +1,23 @@
+meta {
+  name: 09 QA Ask
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/qa/ask
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "knowledge_base_id": "{{knowledge_base_id}}",
+    "question": "What dependencies does the project use?",
+    "limit": 5
+  }
+}

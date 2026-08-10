@@ -1,0 +1,23 @@
+meta {
+  name: 08 Semantic Search
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{base_url}}/search
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "knowledge_base_id": "{{knowledge_base_id}}",
+    "query": "Which databases does the platform use?",
+    "limit": 5
+  }
+}

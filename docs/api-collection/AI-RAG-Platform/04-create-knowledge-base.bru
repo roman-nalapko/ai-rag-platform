@@ -1,0 +1,27 @@
+meta {
+  name: 04 Create Knowledge Base
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/knowledge-bases
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "user_id": "{{user_id}}",
+    "name": "AI RAG Platform Demo",
+    "description": "Portfolio demonstration knowledge base"
+  }
+}
+
+docs {
+  Copy the returned `id` into the `knowledge_base_id` environment variable.
+}

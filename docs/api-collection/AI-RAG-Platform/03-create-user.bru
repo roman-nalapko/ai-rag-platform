@@ -1,0 +1,26 @@
+meta {
+  name: 03 Create User
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "portfolio-demo@example.com"
+  }
+}
+
+docs {
+  Copy the returned `id` into the `user_id` environment variable.
+  Use a different email if this request returns HTTP 409.
+}

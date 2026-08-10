@@ -1,0 +1,15 @@
+meta {
+  name: 07 Get Document Status
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/documents/{{document_id}}
+  body: none
+  auth: none
+}
+
+docs {
+  Repeat until `status` is `indexed`.
+}

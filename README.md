@@ -46,7 +46,7 @@ and deployment workflows.
 **Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
 [architecture](docs/ARCHITECTURE.md) · [interview topics](docs/INTERVIEW.md) ·
 [resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md) ·
-[backlog](BACKLOG.md)
+[API collection](docs/api-collection/README.md) · [backlog](BACKLOG.md)
 
 ## Quick start
 
@@ -478,6 +478,7 @@ evaluation/     # Local RAG quality dataset and evaluation runner
 examples/       # Demo-ready sample document
 scripts/        # Local automation helpers, including the full demo runner
 docs/
+├── api-collection/
 ├── API_EXAMPLES.md
 ├── ARCHITECTURE.md
 ├── BACKLOG_PROCESS.md
