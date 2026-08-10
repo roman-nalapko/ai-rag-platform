@@ -69,6 +69,26 @@ curl http://localhost:8000/health
 Open [Swagger UI](http://localhost:8000/docs), then follow the
 [eight-step demo](docs/DEMO_FLOW.md) using `examples/sample_document.txt`.
 
+## Common commands
+
+The repository includes a small `Makefile` for the most common local workflows:
+
+```bash
+make help
+make docker-up
+make migrate
+make run
+make lint
+make test
+```
+
+For Docker-only API startup:
+
+```bash
+make docker-api-up
+make migrate-docker
+```
+
 ## Architecture
 
 ```text

@@ -72,7 +72,7 @@ No known P0 items.
 
 ### [P1] Add Makefile for common workflows
 
-Status: Ready  
+Status: Done
 Area: infra
 
 Problem:
@@ -88,11 +88,11 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] `make test` runs pytest.
-- [ ] `make lint` runs Ruff.
-- [ ] `make migrate` runs Alembic upgrade.
-- [ ] `make docker-up` starts core services.
-- [ ] README references the Makefile.
+- [x] `make test` runs pytest.
+- [x] `make lint` runs Ruff.
+- [x] `make migrate` runs Alembic upgrade.
+- [x] `make docker-up` starts core services.
+- [x] README references the Makefile.
 
 Out of scope:
 
