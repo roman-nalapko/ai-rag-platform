@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project backlog
+    url: https://github.com/roman-nalapko/ai-rag-platform/blob/main/BACKLOG.md
+    about: Check planned work, priorities, and acceptance criteria before opening a new issue.

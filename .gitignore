@@ -23,6 +23,8 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+tmp/
+output/
 
 # Local database and vector-store data
 postgres_data/

@@ -45,7 +45,8 @@ and deployment workflows.
 
 **Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
 [architecture](docs/ARCHITECTURE.md) · [interview topics](docs/INTERVIEW.md) ·
-[resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md)
+[resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md) ·
+[backlog](BACKLOG.md)
 
 ## Quick start
 
@@ -457,6 +458,7 @@ examples/       # Demo-ready sample document
 docs/
 ├── API_EXAMPLES.md
 ├── ARCHITECTURE.md
+├── BACKLOG_PROCESS.md
 ├── CI.md
 ├── DATABASE.md
 ├── DEMO_FLOW.md
@@ -472,6 +474,9 @@ tests/          # Fast async API and validation test suite
 ```
 
 ## Roadmap
+
+For implementation-level planning, priorities, and acceptance criteria, see the
+[project backlog](BACKLOG.md) and [backlog process](docs/BACKLOG_PROCESS.md).
 
 ### MVP — complete
 
