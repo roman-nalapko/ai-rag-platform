@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     QDRANT_URL: str
     UPLOAD_STORAGE_PATH: Path = Path("storage/uploads")
+    UPLOAD_MAX_BYTES: int = Field(default=10 * 1024 * 1024, gt=0)
 
     LM_STUDIO_BASE_URL: str = "http://localhost:1234/v1"
     LM_STUDIO_API_KEY: str = "lm-studio"

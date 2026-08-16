@@ -331,7 +331,7 @@ Out of scope:
 
 ### [P2] Add upload limits and safer file validation
 
-Status: Backlog  
+Status: Done
 Area: ingestion / security
 
 Problem:
@@ -347,9 +347,9 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Oversized files fail with a clear HTTP error.
-- [ ] Unsupported content types fail before background indexing.
-- [ ] Docs mention limits.
+- [x] Oversized files fail with a clear HTTP error.
+- [x] Unsupported content types fail before background indexing.
+- [x] Docs mention limits.
 
 Out of scope:
 

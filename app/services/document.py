@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import shutil
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +46,10 @@ class DocumentStorageError(RuntimeError):
     """Raised when a raw upload cannot be persisted."""
 
 
+class DocumentTooLargeError(ValueError):
+    """Raised when an uploaded document exceeds the configured size limit."""
+
+
 @dataclass(frozen=True, slots=True)
 class DocumentResult:
     document: Document
@@ -78,6 +81,7 @@ class DocumentService:
     ) -> DocumentResult:
         filename = self._normalize_filename(file.filename)
         content_type = self._validate_content_type(filename, file.content_type)
+        self._validate_file_size(file.size)
         if await self._session.get(KnowledgeBase, knowledge_base_id) is None:
             raise KnowledgeBaseNotFoundError("Knowledge base not found")
 
@@ -253,7 +257,10 @@ class DocumentService:
                 self._copy_upload,
                 file.file,
                 destination,
+                settings.UPLOAD_MAX_BYTES,
             )
+        except DocumentTooLargeError:
+            raise
         except OSError as error:
             raise DocumentStorageError("Uploaded file could not be stored") from error
 
@@ -261,12 +268,23 @@ class DocumentService:
         return self._storage_path / f"{document_id}{Path(filename).suffix.lower()}"
 
     @staticmethod
-    def _copy_upload(source: BinaryIO, destination: Path) -> None:
+    def _copy_upload(
+        source: BinaryIO,
+        destination: Path,
+        max_bytes: int,
+    ) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         temporary = destination.with_name(f".{destination.name}.part")
+        bytes_written = 0
         try:
             with temporary.open("wb") as output:
-                shutil.copyfileobj(source, output)
+                while chunk := source.read(1024 * 1024):
+                    bytes_written += len(chunk)
+                    if bytes_written > max_bytes:
+                        raise DocumentTooLargeError(
+                            f"Uploaded file exceeds the {max_bytes} byte limit"
+                        )
+                    output.write(chunk)
             os.replace(temporary, destination)
         finally:
             temporary.unlink(missing_ok=True)
@@ -296,6 +314,13 @@ class DocumentService:
             )
 
         return normalized
+
+    @staticmethod
+    def _validate_file_size(size: int | None) -> None:
+        if size is not None and size > settings.UPLOAD_MAX_BYTES:
+            raise DocumentTooLargeError(
+                f"Uploaded file exceeds the {settings.UPLOAD_MAX_BYTES} byte limit"
+            )
 
     @staticmethod
     def _validate_content_type(filename: str, content_type: str | None) -> str:

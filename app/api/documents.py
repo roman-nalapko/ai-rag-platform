@@ -19,6 +19,7 @@ from app.services.document import (
     DocumentNotFoundError,
     DocumentService,
     DocumentStorageError,
+    DocumentTooLargeError,
     InvalidFilenameError,
     UnsupportedDocumentTypeError,
     process_document_background,
@@ -55,6 +56,11 @@ async def upload_document(
     except UnsupportedDocumentTypeError as error:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=str(error),
+        ) from error
+    except DocumentTooLargeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=str(error),
         ) from error
     except KnowledgeBaseNotFoundError as error:

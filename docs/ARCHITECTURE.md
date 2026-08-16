@@ -73,8 +73,9 @@ directly.
 
 The service layer contains application use cases:
 
-- `document.py` persists upload metadata and raw files, claims pending jobs,
-  coordinates extraction/chunking/indexing, and exposes processing status.
+- `document.py` persists upload metadata and raw files, validates upload
+  type/size, claims pending jobs, coordinates extraction/chunking/indexing, and
+  exposes processing status.
 - `text_extraction.py` decodes UTF-8 TXT files and extracts PDF text with
   `pypdf`. PDF parsing is moved off the event loop.
 - `chunking.py` creates overlapping text chunks.

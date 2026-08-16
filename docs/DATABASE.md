@@ -9,6 +9,9 @@ relationships, document order, and conversation history.
 
 The application uses PostgreSQL 17 through SQLAlchemy's asynchronous engine and
 the `asyncpg` driver. Local Docker Compose exposes the database on port `5432`.
+Raw uploaded files are stored on disk under `storage/uploads/` by default and
+are limited by `UPLOAD_MAX_BYTES`; oversized files are rejected before
+background indexing starts.
 
 ## Migrations
 

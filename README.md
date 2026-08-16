@@ -146,6 +146,8 @@ Replace these links with real captures as the public demo evolves:
 
 - **RAG ingestion:** PDF/TXT extraction, overlapping chunks, local embeddings,
   dynamic Qdrant collections, and observable processing states.
+- **Upload safety:** configurable raw document size limits and strict PDF/TXT
+  MIME validation before indexing starts.
 - **Scoped retrieval:** top-K cosine search with mandatory knowledge-base
   payload filters, scores, and complete source metadata.
 - **Grounded chat:** strict context-only prompting, deterministic fallback,
@@ -246,6 +248,7 @@ alembic upgrade head
    LM_STUDIO_TIMEOUT_SECONDS=300
    LM_STUDIO_MAX_TOKENS=64
    UPLOAD_STORAGE_PATH=storage/uploads
+   UPLOAD_MAX_BYTES=10485760
    ```
 
    On an 8 GB M1, load the chat model with a 2048-token context and one
