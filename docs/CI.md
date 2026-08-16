@@ -21,7 +21,16 @@ pytest
 The default suite uses HTTPX's in-process ASGI transport and fake database
 dependency, so CI does not start PostgreSQL, Qdrant, or LM Studio. Placeholder
 environment values satisfy application configuration but are never contacted
-by these tests. See [Testing](TESTING.md) for current coverage and integration
+by these tests.
+
+Infrastructure-backed tests are marked `integration` and run locally with:
+
+```bash
+make test-integration
+```
+
+They are not part of the default CI job because they require PostgreSQL and
+Qdrant services. See [Testing](TESTING.md) for current coverage and integration
 test boundaries.
 
 ## Lint

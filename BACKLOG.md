@@ -142,9 +142,9 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Integration tests are clearly separated from fast unit tests.
-- [ ] Tests can be run locally with one documented command.
-- [ ] CI keeps fast tests by default unless integration services are available.
+- [x] Integration tests are clearly separated from fast unit tests.
+- [x] Tests can be run locally with one documented command.
+- [x] CI keeps fast tests by default unless integration services are available.
 
 Out of scope:
 

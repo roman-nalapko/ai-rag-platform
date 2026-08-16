@@ -13,7 +13,7 @@ API_PORT ?= 8000
 API_URL ?= http://localhost:8000
 KNOWLEDGE_BASE_ID ?=
 
-.PHONY: help install lint test check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo demo-flow
+.PHONY: help install lint test test-integration check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo demo-flow
 
 help:
 	@echo "AI RAG Platform commands"
@@ -26,6 +26,7 @@ help:
 	@echo "Quality:"
 	@echo "  make lint            Run Ruff"
 	@echo "  make test            Run pytest"
+	@echo "  make test-integration Run PostgreSQL/Qdrant integration tests"
 	@echo "  make check           Run lint and tests"
 	@echo ""
 	@echo "Run:"
@@ -49,6 +50,9 @@ lint:
 
 test:
 	$(PYTEST)
+
+test-integration:
+	RUN_INTEGRATION_TESTS=1 $(PYTEST) tests/integration -m integration
 
 check: lint test
 

@@ -17,6 +17,7 @@ Useful focused commands:
 pytest tests/test_health.py
 pytest tests/test_validation.py -v
 pytest -k request_id
+make test-integration
 ```
 
 `pytest.ini` enables pytest-asyncio automatically, adds the repository root to
@@ -44,7 +45,7 @@ These tests also do not instantiate or call LM Studio or Qdrant.
 
 ## Integration environment
 
-The following workflows require dedicated integration tests and real local
+Integration tests live under `tests/integration/` and require real local
 infrastructure:
 
 - SQLAlchemy persistence and Alembic migrations: PostgreSQL 17;
@@ -55,16 +56,19 @@ infrastructure:
 - end-to-end upload, search, QA, conversation history, and SSE streaming: all
   services with an indexed knowledge base.
 
-Start the infrastructure with:
+Start PostgreSQL and Qdrant, apply migrations, then opt into integration tests:
 
 ```bash
-docker compose up -d
+docker compose up -d postgres qdrant
 alembic upgrade head
+make test-integration
 ```
 
-LM Studio remains a host process and must be started separately. The default
-test suite intentionally excludes these integration workflows so it stays
-fast, deterministic, and suitable for running on every code change.
+The integration suite currently verifies Alembic-created PostgreSQL tables,
+document/chunk persistence, Qdrant collection creation, and tenant payload
+filtering. It does not require LM Studio. The default test suite intentionally
+excludes these workflows so it stays fast, deterministic, and suitable for
+running on every code change.
 
 ## Adding tests
 
