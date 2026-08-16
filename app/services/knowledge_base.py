@@ -44,7 +44,12 @@ class KnowledgeBaseService:
 
         return knowledge_base
 
-    async def list_for_user(self, user_id: uuid.UUID) -> list[KnowledgeBase]:
+    async def list_for_user(
+        self,
+        user_id: uuid.UUID,
+        limit: int,
+        offset: int,
+    ) -> list[KnowledgeBase]:
         if await self._session.get(User, user_id) is None:
             raise UserNotFoundError("User not found")
 
@@ -52,5 +57,7 @@ class KnowledgeBaseService:
             select(KnowledgeBase)
             .where(KnowledgeBase.user_id == user_id)
             .order_by(KnowledgeBase.created_at, KnowledgeBase.id)
+            .limit(limit)
+            .offset(offset)
         )
         return list(result.scalars().all())

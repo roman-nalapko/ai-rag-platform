@@ -359,7 +359,7 @@ Out of scope:
 
 ### [P2] Add pagination for list endpoints
 
-Status: Backlog  
+Status: Done
 Area: api
 
 Problem:
@@ -372,8 +372,8 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Knowledge-base lists are paginated.
-- [ ] Future document/conversation lists use the same pattern.
+- [x] Knowledge-base lists are paginated.
+- [x] Future document/conversation lists use the same pattern.
 
 Out of scope:
 

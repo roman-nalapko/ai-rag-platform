@@ -44,6 +44,24 @@ async def test_knowledge_base_creation_rejects_invalid_payloads(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    "query",
+    [
+        f"user_id={VALID_UUID}&limit=0",
+        f"user_id={VALID_UUID}&limit=101",
+        f"user_id={VALID_UUID}&offset=-1",
+    ],
+)
+async def test_knowledge_base_list_rejects_invalid_pagination(
+    api_client: httpx.AsyncClient,
+    query: str,
+) -> None:
+    response = await api_client.get(f"/knowledge-bases?{query}")
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "payload",
     [
         {"query": "dependencies"},

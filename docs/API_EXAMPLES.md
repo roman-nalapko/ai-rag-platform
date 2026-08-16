@@ -109,11 +109,11 @@ Example response:
 
 ```bash
 curl --silent --show-error \
-  "http://localhost:8000/knowledge-bases?user_id=11111111-1111-1111-1111-111111111111"
+  "http://localhost:8000/knowledge-bases?user_id=11111111-1111-1111-1111-111111111111&limit=50&offset=0"
 ```
 
-The response is an array of knowledge bases owned by that user. Unknown users
-return HTTP `404`.
+The response is an array of knowledge bases owned by that user. Pagination uses
+`limit` from 1 to 100 and `offset` from 0. Unknown users return HTTP `404`.
 
 ## Upload a document
 

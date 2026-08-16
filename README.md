@@ -172,7 +172,7 @@ Replace these links with real captures as the public demo evolves:
 | `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
 | `POST` | `/users`                       | Create a user account record                    |
 | `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
-| `GET`  | `/knowledge-bases?user_id=...` | List one user's knowledge bases                 |
+| `GET`  | `/knowledge-bases?user_id=...&limit=50&offset=0` | List one user's knowledge bases |
 | `POST` | `/conversations`               | Start a conversation in a knowledge base        |
 | `GET`  | `/conversations/{id}/messages` | Read a conversation's chat history              |
 | `POST` | `/documents/upload`            | Store a PDF/TXT file and enqueue indexing       |
