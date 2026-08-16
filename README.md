@@ -145,7 +145,8 @@ Replace these links with real captures as the public demo evolves:
 ## Key features
 
 - **RAG ingestion:** PDF/TXT extraction, overlapping chunks, local embeddings,
-  dynamic Qdrant collections, and observable processing states.
+  dynamic Qdrant collections, embedding model metadata, and observable
+  processing states.
 - **Upload safety:** configurable raw document size limits and strict PDF/TXT
   MIME validation before indexing starts.
 - **Scoped retrieval:** top-K cosine search with mandatory knowledge-base
@@ -534,7 +535,7 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 - [ ] Durable Celery/Redis ingestion queue and upload-size limits
 - [ ] Document listing, retry, and deletion APIs
 - [ ] Metrics, distributed tracing, dashboards, alerts, and retry policies
-- [ ] Embedding task prefixes, re-indexing, and model-version metadata
+- [ ] Embedding task prefixes and stale-vector detection after model changes
 
 ### V2 — platform capabilities
 

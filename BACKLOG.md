@@ -229,7 +229,7 @@ Out of scope:
 
 ### [P2] Add embedding model metadata to indexed vectors
 
-Status: Backlog  
+Status: Done  
 Area: rag / db
 
 Problem:
@@ -239,13 +239,14 @@ Problem:
 
 Scope:
 
-- Store embedding model name/version in document or chunk metadata.
-- Add a way to detect stale vectors after model changes.
+- Store embedding model name/version in indexed vector payload metadata.
+- Document how to inspect payloads and when manual re-indexing is required
+  after model changes.
 
 Acceptance criteria:
 
-- [ ] Indexed payload includes embedding model metadata.
-- [ ] Docs explain when re-indexing is required.
+- [x] Indexed payload includes embedding model metadata.
+- [x] Docs explain when re-indexing is required.
 
 Out of scope:
 

@@ -104,14 +104,16 @@ Qdrant-specific behavior:
 - Automatic `document_chunks` collection creation
 - Dynamic vector-size discovery from the first embedding
 - Cosine-distance configuration validation
-- Chunk payload construction, including knowledge-base ownership, and batched
-  upsert
+- Chunk payload construction, including knowledge-base ownership, embedding
+  model metadata, and batched upsert
 - Semantic `query_points` calls with mandatory knowledge-base payload filters
 - Deletion and best-effort compensation
 
 The stored payload includes knowledge base ID, document ID, chunk ID, chunk
-index, filename, and chunk content. Qdrant response types are converted into
-neutral application objects before returning to services.
+index, embedding model, filename, and chunk content. Qdrant response types are
+converted into neutral application objects before returning to services.
+Because vector spaces are model-specific, documents should be re-indexed after
+changing `LM_STUDIO_EMBEDDING_MODEL`.
 
 ### `app/llm`
 

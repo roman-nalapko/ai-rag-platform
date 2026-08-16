@@ -225,6 +225,7 @@ class VectorStoreService:
                 "document_id": str(document.id),
                 "chunk_id": str(chunk.id),
                 "chunk_index": chunk.chunk_index,
+                "embedding_model": settings.LM_STUDIO_EMBEDDING_MODEL,
                 "filename": document.filename,
                 "content": chunk.content,
             },

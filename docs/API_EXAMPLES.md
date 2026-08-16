@@ -190,7 +190,10 @@ the document only after its vectors reach Qdrant and the status becomes
 
 Use this after a failed indexing attempt or when the source file should be
 processed again. Existing chunks and Qdrant vectors are removed before the
-document returns to `pending`.
+document returns to `pending`. Re-index documents after changing
+`LM_STUDIO_EMBEDDING_MODEL`, because existing Qdrant vectors were generated in
+the previous model's vector space. New vector payloads include the configured
+embedding model name for inspection and troubleshooting.
 
 ```bash
 curl --silent --show-error \
