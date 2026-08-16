@@ -179,7 +179,7 @@ Out of scope:
 
 ### [P1] Improve retrieval evaluation beyond keyword matching
 
-Status: Backlog  
+Status: Done
 Area: evaluation
 
 Problem:
@@ -194,9 +194,9 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Evaluation report separates answer keyword accuracy from retrieval
+- [x] Evaluation report separates answer keyword accuracy from retrieval
   quality.
-- [ ] Docs explain how to add expected source chunks or documents.
+- [x] Docs explain how to add expected source chunks or documents.
 
 Out of scope:
 

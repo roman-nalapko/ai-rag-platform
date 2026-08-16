@@ -9,8 +9,9 @@ makes regressions visible when chunking, embeddings, retrieval parameters,
 prompts, or local models change.
 
 The current evaluator is intentionally lightweight and fully local. It calls
-the existing `/qa/ask` endpoint and checks whether every expected keyword is
-present in the answer. It does not use paid APIs or an external judge model.
+the existing `/qa/ask` endpoint, checks whether every expected keyword is
+present in the answer, and verifies that retrieved source chunks contain
+expected source evidence. It does not use paid APIs or an external judge model.
 
 ## Add test questions
 
@@ -20,6 +21,8 @@ Edit `evaluation/test_questions.json` and add objects with this structure:
 {
   "question": "What dependencies does the project use?",
   "expected_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
+  "expected_source_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
+  "expected_source_filenames": ["sample_document.txt"],
   "knowledge_base_id": "optional-placeholder"
 }
 ```
@@ -27,6 +30,10 @@ Edit `evaluation/test_questions.json` and add objects with this structure:
 `question` and `expected_keywords` are required. All keywords must be present
 for the case to pass. Matching is case-insensitive. `knowledge_base_id` may be
 a real UUID per case, or the whole dataset can use one runtime override.
+`expected_source_keywords` and `expected_source_filenames` are optional, but
+recommended for retrieval checks. Source keywords are matched against the
+combined retrieved source chunk text. Source filenames are matched against the
+returned source filenames.
 
 Questions should target facts that actually exist in the indexed documents.
 Prefer several focused cases over one broad question, and include terminology
@@ -68,10 +75,15 @@ local quality gates and future CI jobs.
 The report contains:
 
 - `total_questions`: number of evaluated cases;
-- `passed`: answers containing every expected keyword;
-- `failed`: keyword misses, API failures, and unconfigured knowledge bases;
-- `accuracy_percent`: `passed / total questions * 100`.
+- `passed`: cases that pass both answer and retrieval checks;
+- `failed`: keyword misses, source misses, API failures, and unconfigured
+  knowledge bases;
+- `accuracy_percent`: full pass rate across all checks;
+- `answer_accuracy_percent`: answer keyword pass rate;
+- `retrieval_hit_rate_percent`: source evidence pass rate.
 
 Keyword accuracy is a transparent MVP metric, not a complete measure of RAG
-quality. Future versions can add retrieval recall, source relevance, grounded
-answer checks, latency percentiles, and curated human scoring.
+quality. Retrieval hit rate improves this by confirming that the API returned
+expected evidence chunks, but it is still deterministic and local. Future
+versions can add richer source relevance scoring, grounded answer checks,
+latency percentiles, and curated human scoring.

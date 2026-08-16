@@ -156,8 +156,9 @@ Replace these links with real captures as the public demo evolves:
   conversations, and messages modelled in PostgreSQL with cascade rules.
 - **Failure handling:** explicit provider errors, failed-document diagnostics,
   transactional chunk writes, and compensating Qdrant deletion.
-- **Quality engineering:** offline RAG evaluation, pytest API contracts, Ruff,
-  GitHub Actions, and a reproducible sample document/demo.
+- **Quality engineering:** offline RAG evaluation with answer and source
+  metrics, pytest API contracts, Ruff, GitHub Actions, and a reproducible
+  sample document/demo.
 - **Observability:** JSON logs, `X-Request-ID`, and embedding, retrieval,
   generation, and indexing latency events without logging model inputs.
 - **Local deployment:** LM Studio inference with no paid key, versioned Alembic

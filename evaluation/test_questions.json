@@ -2,6 +2,8 @@
   {
     "question": "What dependencies does the project use?",
     "expected_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
+    "expected_source_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
+    "expected_source_filenames": ["sample_document.txt"],
     "knowledge_base_id": "optional-placeholder"
   }
 ]
