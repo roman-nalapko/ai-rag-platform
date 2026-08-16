@@ -1,0 +1,16 @@
+meta {
+  name: 09 Re-index Document
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/documents/{{document_id}}/reindex
+  body: none
+  auth: none
+}
+
+docs {
+  Clears existing chunks and Qdrant vectors, sets the document back to pending,
+  and enqueues background indexing again.
+}

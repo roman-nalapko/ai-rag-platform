@@ -8,7 +8,7 @@ from time import perf_counter
 from typing import BinaryIO
 
 from fastapi import UploadFile
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -48,6 +48,10 @@ class DocumentStorageError(RuntimeError):
 
 class DocumentTooLargeError(ValueError):
     """Raised when an uploaded document exceeds the configured size limit."""
+
+
+class DocumentAlreadyProcessingError(ValueError):
+    """Raised when a document lifecycle operation conflicts with processing."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +128,59 @@ class DocumentService:
             document=document,
             chunks_count=int(chunks_count or 0),
         )
+
+    async def delete(self, document_id: uuid.UUID) -> None:
+        document = await self._session.get(Document, document_id)
+        if document is None:
+            raise DocumentNotFoundError("Document not found")
+        if document.status == DocumentStatus.PROCESSING.value:
+            raise DocumentAlreadyProcessingError(
+                "Document is currently being processed"
+            )
+
+        try:
+            await self._get_vector_store().delete_document_chunks(document_id)
+            await self._session.delete(document)
+            await self._session.commit()
+        except VectorStoreError:
+            await self._session.rollback()
+            raise
+        except Exception:
+            await self._session.rollback()
+            raise
+
+        await asyncio.to_thread(
+            self._storage_file(document.id, document.filename).unlink,
+            missing_ok=True,
+        )
+
+    async def enqueue_reindex(self, document_id: uuid.UUID) -> DocumentResult:
+        document = await self._session.get(Document, document_id)
+        if document is None:
+            raise DocumentNotFoundError("Document not found")
+        if document.status == DocumentStatus.PROCESSING.value:
+            raise DocumentAlreadyProcessingError(
+                "Document is currently being processed"
+            )
+
+        try:
+            await self._get_vector_store().delete_document_chunks(document_id)
+            await self._session.execute(
+                delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+            )
+            document.status = DocumentStatus.PENDING.value
+            document.processed = False
+            document.error_message = None
+            await self._session.commit()
+            await self._session.refresh(document)
+        except VectorStoreError:
+            await self._session.rollback()
+            raise
+        except Exception:
+            await self._session.rollback()
+            raise
+
+        return DocumentResult(document=document, chunks_count=0)
 
     async def process_pending(self, document_id: uuid.UUID) -> None:
         if not await self._claim_pending_document(document_id):

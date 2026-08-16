@@ -152,7 +152,7 @@ Out of scope:
 
 ### [P1] Add document delete and re-index flow
 
-Status: Backlog  
+Status: Done
 Area: ingestion / rag
 
 Problem:
@@ -167,9 +167,9 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Deleting a document removes chunks and vectors.
-- [ ] Re-indexing updates chunks and vectors safely.
-- [ ] Failure cases are visible through document status.
+- [x] Deleting a document removes chunks and vectors.
+- [x] Re-indexing updates chunks and vectors safely.
+- [x] Failure cases are visible through document status.
 
 Out of scope:
 

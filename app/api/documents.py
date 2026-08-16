@@ -14,8 +14,10 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.rag.vector_store import VectorStoreError
 from app.schemas.document import DocumentDetailResponse, DocumentUploadResponse
 from app.services.document import (
+    DocumentAlreadyProcessingError,
     DocumentNotFoundError,
     DocumentService,
     DocumentStorageError,
@@ -107,6 +109,72 @@ async def get_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         ) from error
+
+    return DocumentDetailResponse(
+        id=result.document.id,
+        knowledge_base_id=result.document.knowledge_base_id,
+        filename=result.document.filename,
+        content_type=result.document.content_type,
+        created_at=result.document.created_at,
+        processed=result.document.processed,
+        status=result.document.status,
+        error_message=result.document.error_message,
+        chunks_count=result.chunks_count,
+    )
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(
+    document_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    try:
+        await DocumentService(session).delete(document_id)
+    except DocumentNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except DocumentAlreadyProcessingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+    except VectorStoreError as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        ) from error
+
+
+@router.post("/{document_id}/reindex", response_model=DocumentDetailResponse)
+async def reindex_document(
+    document_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> DocumentDetailResponse:
+    try:
+        result = await DocumentService(session).enqueue_reindex(document_id)
+    except DocumentNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except DocumentAlreadyProcessingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+    except VectorStoreError as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        ) from error
+
+    background_tasks.add_task(
+        process_document_background,
+        result.document.id,
+    )
 
     return DocumentDetailResponse(
         id=result.document.id,

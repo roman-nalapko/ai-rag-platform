@@ -1,0 +1,16 @@
+meta {
+  name: 10 Delete Document
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{base_url}}/documents/{{document_id}}
+  body: none
+  auth: none
+}
+
+docs {
+  Removes document metadata, chunks, Qdrant vectors, and the stored raw upload.
+  Run this after search/QA examples if you still need the document for testing.
+}

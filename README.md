@@ -177,6 +177,8 @@ Replace these links with real captures as the public demo evolves:
 | `GET`  | `/conversations/{id}/messages` | Read a conversation's chat history              |
 | `POST` | `/documents/upload`            | Store a PDF/TXT file and enqueue indexing       |
 | `GET`  | `/documents/{id}`              | Read processing status, chunk count, and errors |
+| `POST` | `/documents/{id}/reindex`      | Clear chunks/vectors and enqueue re-indexing    |
+| `DELETE` | `/documents/{id}`            | Delete metadata, chunks, vectors, and raw file  |
 | `POST` | `/search`                      | Semantic search within one knowledge base       |
 | `POST` | `/qa/ask`                      | Knowledge-base-scoped RAG answer with sources   |
 | `POST` | `/qa/ask/stream`               | Stream a grounded answer over SSE               |

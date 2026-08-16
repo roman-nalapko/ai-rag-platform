@@ -186,6 +186,29 @@ For failed processing, `status` is `failed`, `processed` remains `false`, and
 the document only after its vectors reach Qdrant and the status becomes
 `indexed`.
 
+## Re-index a document
+
+Use this after a failed indexing attempt or when the source file should be
+processed again. Existing chunks and Qdrant vectors are removed before the
+document returns to `pending`.
+
+```bash
+curl --silent --show-error \
+  -X POST http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580/reindex
+```
+
+## Delete a document
+
+Deleting a document removes PostgreSQL metadata/chunks, Qdrant vectors, and the
+stored upload file.
+
+```bash
+curl --silent --show-error \
+  -X DELETE http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580
+```
+
+Successful deletion returns HTTP `204`.
+
 ## Semantic search
 
 ```bash
