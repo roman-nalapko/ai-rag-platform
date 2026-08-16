@@ -87,6 +87,8 @@ The service layer contains application use cases:
   history, and writes user/assistant message pairs transactionally.
 - `llm_health.py` verifies the configured embedding model and reports its
   dynamic dimensions.
+- `readiness.py` checks required runtime dependencies for `/health/ready`
+  without invoking LM Studio.
 
 Services translate provider failures into application-level exceptions so the
 API layer can distinguish LM Studio unavailability from Qdrant failures.
@@ -250,9 +252,10 @@ order.
 
 For the full container profile, migrations run through a one-off API container
 before the long-running API service starts. Schema creation remains outside the
-application startup lifecycle. The API healthcheck calls `/health`; PostgreSQL
-must pass `pg_isready`, while Qdrant must at least be started before Compose
-starts the API.
+application startup lifecycle. The API container healthcheck calls `/health`.
+The runtime readiness endpoint `/health/ready` checks PostgreSQL and Qdrant
+connectivity without calling LM Studio. PostgreSQL must pass `pg_isready`,
+while Qdrant must at least be started before Compose starts the API.
 
 PostgreSQL, Qdrant, and FastAPI run in Docker Compose. LM Studio remains on the
 host machine because it manages Apple Silicon model execution. Named volumes

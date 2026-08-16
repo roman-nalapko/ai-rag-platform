@@ -18,6 +18,28 @@ Expected response:
 }
 ```
 
+## API readiness
+
+This request checks PostgreSQL and Qdrant without calling LM Studio.
+
+```bash
+curl --silent --show-error http://localhost:8000/health/ready
+```
+
+Expected response:
+
+```json
+{
+  "status": "ready",
+  "checks": {
+    "database": "ok",
+    "qdrant": "ok"
+  }
+}
+```
+
+If PostgreSQL or Qdrant is unavailable, the endpoint returns HTTP `503`.
+
 ## LM Studio health
 
 This request generates an embedding for `health check`. The reported dimension

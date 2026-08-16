@@ -144,6 +144,12 @@ class VectorStoreService:
         )
         return hits
 
+    async def ping(self) -> None:
+        try:
+            await self._client.get_collections()
+        except Exception as error:
+            raise VectorStoreError("Qdrant readiness check failed") from error
+
     async def close(self) -> None:
         await self._client.close()
 

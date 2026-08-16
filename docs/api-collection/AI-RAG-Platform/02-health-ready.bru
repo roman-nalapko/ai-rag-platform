@@ -1,0 +1,16 @@
+meta {
+  name: 02 Health Ready
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/health/ready
+  body: none
+  auth: none
+}
+
+docs {
+  Checks required runtime dependencies: PostgreSQL and Qdrant.
+  This endpoint intentionally does not call LM Studio.
+}

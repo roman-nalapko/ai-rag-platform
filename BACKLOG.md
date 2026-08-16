@@ -126,7 +126,7 @@ Out of scope:
 
 ### [P1] Add PostgreSQL + Qdrant integration tests
 
-Status: Backlog  
+Status: Done
 Area: tests
 
 Problem:
@@ -381,7 +381,7 @@ Out of scope:
 
 ### [P2] Add readiness endpoint
 
-Status: Backlog  
+Status: Done
 Area: api / infra
 
 Problem:
@@ -395,8 +395,8 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Returns healthy only when required dependencies are reachable.
-- [ ] Does not call LM Studio unless explicitly requested.
+- [x] Returns healthy only when required dependencies are reachable.
+- [x] Does not call LM Studio unless explicitly requested.
 
 Out of scope:
 

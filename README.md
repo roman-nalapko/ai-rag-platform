@@ -166,6 +166,7 @@ Replace these links with real captures as the public demo evolves:
 | Method | Endpoint                       | Purpose                                         |
 | ------ | ------------------------------ | ----------------------------------------------- |
 | `GET`  | `/health`                      | API process health                              |
+| `GET`  | `/health/ready`                | PostgreSQL and Qdrant readiness                 |
 | `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
 | `POST` | `/users`                       | Create a user account record                    |
 | `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
@@ -265,6 +266,7 @@ Verify the services:
 
 ```bash
 curl http://localhost:8000/health
+curl http://localhost:8000/health/ready
 curl http://localhost:8000/health/llm
 ```
 
