@@ -26,5 +26,8 @@ class Settings(BaseSettings):
     LM_STUDIO_TIMEOUT_SECONDS: float = Field(default=300.0, gt=0)
     LM_STUDIO_MAX_TOKENS: int = Field(default=64, ge=1, le=4096)
 
+    RERANKING_ENABLED: bool = False
+    RERANKING_CANDIDATE_MULTIPLIER: int = Field(default=3, ge=1, le=10)
+
 
 settings = Settings()

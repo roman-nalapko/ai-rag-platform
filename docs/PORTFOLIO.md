@@ -111,7 +111,8 @@ Current limitations to state honestly:
 - background jobs are in-process and non-durable;
 - local uploads are not shared between replicas;
 - embeddings are generated sequentially per document;
-- retrieval uses dense similarity without reranking;
+- reranking is intentionally simple and local-first rather than a learned
+  cross-encoder;
 - keyword evaluation measures answer coverage, not full faithfulness;
 - the fast CI suite does not yet run PostgreSQL/Qdrant/LM Studio integration
   tests;

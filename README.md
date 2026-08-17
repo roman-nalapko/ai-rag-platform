@@ -150,7 +150,8 @@ Replace these links with real captures as the public demo evolves:
 - **Upload safety:** configurable raw document size limits and strict PDF/TXT
   MIME validation before indexing starts.
 - **Scoped retrieval:** top-K cosine search with mandatory knowledge-base
-  payload filters, scores, and complete source metadata.
+  payload filters, optional local reranking, scores, and complete source
+  metadata.
 - **Grounded chat:** strict context-only prompting, deterministic fallback,
   source attribution, persistent conversation history, and SSE streaming.
 - **SaaS foundation:** users, knowledge bases, documents, chunks,
@@ -251,6 +252,8 @@ alembic upgrade head
    LM_STUDIO_EMBEDDING_MODEL=nomic-ai/text-embedding-nomic-embed-text-v1.5
    LM_STUDIO_TIMEOUT_SECONDS=300
    LM_STUDIO_MAX_TOKENS=64
+   RERANKING_ENABLED=false
+   RERANKING_CANDIDATE_MULTIPLIER=3
    UPLOAD_STORAGE_PATH=storage/uploads
    UPLOAD_MAX_BYTES=10485760
    ```
@@ -262,6 +265,11 @@ alembic upgrade head
 The API key is a local placeholder unless authentication is explicitly enabled
 inside LM Studio. Embedding dimensions are discovered dynamically; the current
 Nomic configuration returns 768-dimensional vectors.
+
+Optional reranking is disabled by default to preserve vector-search behavior.
+Set `RERANKING_ENABLED=true` to over-fetch local Qdrant candidates and reorder
+them with the built-in keyword-overlap reranker before Search and QA choose
+their final context.
 
 ### 5. Start FastAPI
 

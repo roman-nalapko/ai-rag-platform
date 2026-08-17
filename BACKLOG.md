@@ -204,7 +204,7 @@ Out of scope:
 
 ### [P2] Add optional reranking layer
 
-Status: Backlog  
+Status: Done  
 Area: retrieval
 
 Problem:
@@ -216,12 +216,13 @@ Scope:
 
 - Add an optional reranker abstraction.
 - Keep default mode local-first and disabled unless configured.
+- Over-fetch Qdrant candidates only when reranking is enabled.
 
 Acceptance criteria:
 
-- [ ] Search and QA can run with or without reranking.
-- [ ] Configuration is documented.
-- [ ] Existing behavior remains unchanged by default.
+- [x] Search and QA can run with or without reranking.
+- [x] Configuration is documented.
+- [x] Existing behavior remains unchanged by default.
 
 Out of scope:
 

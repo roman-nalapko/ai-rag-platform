@@ -107,6 +107,7 @@ Qdrant-specific behavior:
 - Chunk payload construction, including knowledge-base ownership, embedding
   model metadata, and batched upsert
 - Semantic `query_points` calls with mandatory knowledge-base payload filters
+- Optional local reranking after vector search when `RERANKING_ENABLED=true`
 - Deletion and best-effort compensation
 
 The stored payload includes knowledge base ID, document ID, chunk ID, chunk
@@ -219,12 +220,18 @@ POST /search
     -> verify the knowledge base exists in PostgreSQL
     -> generate query embedding through LM Studio
     -> query Qdrant with cosine similarity and knowledge-base filter
+    -> optionally rerank candidate chunks locally
     -> validate payload fields
     -> return ranked chunks and scores
 ```
 
 Search returns an empty result when no collection exists. LM Studio failures
 map to HTTP `503`; Qdrant failures map to HTTP `500`.
+Reranking is disabled by default. When enabled, the service fetches
+`limit * RERANKING_CANDIDATE_MULTIPLIER` candidates, caps the candidate set at
+50, and applies a local keyword-overlap reranker before returning the final
+top-K list. QA reuses the same search service, so the selected context changes
+only when reranking is explicitly enabled.
 
 ## Question-answering flow
 

@@ -249,6 +249,11 @@ Example response:
 results cannot contain chunks from another knowledge base. Unknown knowledge
 bases return HTTP `404`.
 
+By default, Search returns Qdrant vector-similarity order. Set
+`RERANKING_ENABLED=true` to fetch a larger candidate set and apply the local
+keyword-overlap reranker before the final results are returned. QA uses the same
+retrieval path.
+
 ## RAG question answering
 
 ```bash

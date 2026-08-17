@@ -3,12 +3,14 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.llm.lm_studio_client import (
     LMStudioClient,
     LMStudioClientError,
     get_lm_studio_client,
 )
 from app.models.knowledge_base import KnowledgeBase
+from app.rag.reranker import Reranker, get_reranker
 from app.rag.vector_store import (
     VectorSearchHit,
     VectorStoreError,
@@ -45,10 +47,12 @@ class SearchService:
         session: AsyncSession,
         embedding_client: LMStudioClient,
         vector_store: VectorStoreService,
+        reranker: Reranker,
     ) -> None:
         self._session = session
         self._embedding_client = embedding_client
         self._vector_store = vector_store
+        self._reranker = reranker
 
     async def search(
         self,
@@ -72,13 +76,20 @@ class SearchService:
         try:
             hits = await self._vector_store.search(
                 query_vector,
-                limit,
+                self._candidate_limit(limit),
                 knowledge_base_id,
             )
         except VectorStoreError as error:
             raise SearchVectorStoreError("Qdrant semantic search failed") from error
 
-        return [self._to_match(hit, knowledge_base_id) for hit in hits]
+        matches = [self._to_match(hit, knowledge_base_id) for hit in hits]
+        return self._reranker.rerank(query, matches, limit)
+
+    @staticmethod
+    def _candidate_limit(limit: int) -> int:
+        if not settings.RERANKING_ENABLED:
+            return limit
+        return min(limit * settings.RERANKING_CANDIDATE_MULTIPLIER, 50)
 
     @staticmethod
     def _to_match(
@@ -111,4 +122,5 @@ def get_search_service(session: AsyncSession) -> SearchService:
         session=session,
         embedding_client=get_lm_studio_client(),
         vector_store=get_vector_store(),
+        reranker=get_reranker(),
     )
