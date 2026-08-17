@@ -38,6 +38,8 @@ Host machine
 └── Docker Compose network
     ├── api :8000
     │   └── uploads_data -> /app/storage/uploads
+    ├── worker
+    │   └── uploads_data -> /app/storage/uploads
     ├── postgres :5432 -> postgres_data
     └── qdrant :6333/:6334 -> qdrant_data
 ```
@@ -75,9 +77,13 @@ directly.
 The service layer contains application use cases:
 
 - `document.py` persists upload metadata and raw files, validates upload
-  type/size, claims pending jobs, coordinates extraction/chunking/indexing, and
-  exposes processing status. It also owns document deletion and re-index
-  preparation so Qdrant vectors and PostgreSQL chunks stay in sync.
+  type/size, enqueues durable indexing jobs, coordinates
+  extraction/chunking/indexing, and exposes processing status. It also owns
+  document deletion and re-index preparation so Qdrant vectors and PostgreSQL
+  chunks stay in sync.
+- `document_worker.py` polls the PostgreSQL-backed `document_jobs` queue,
+  claims jobs with row locks, invokes document processing, and records
+  completed or failed job state.
 - `text_extraction.py` decodes UTF-8 TXT files and extracts PDF text with
   `pypdf`. PDF parsing is moved off the event loop.
 - `chunking.py` creates overlapping text chunks.
@@ -152,6 +158,8 @@ creates or alters tables during startup. See [Database](DATABASE.md).
 SQLAlchemy models define the relational persistence model:
 
 - `Document` stores upload metadata and processing state.
+- `DocumentJob` stores durable indexing work for uploaded or re-indexed
+  documents.
 - `DocumentChunk` stores ordered extracted text and references its document.
 - `User` is the root owner for tenant-scoped API access.
 - `KnowledgeBase` groups documents under one user.
@@ -184,10 +192,11 @@ POST /documents/upload
     -> validate destination knowledge base
     -> persist raw file under storage/uploads/<document-id>.<extension>
     -> create Document(status=pending)
-    -> schedule FastAPI BackgroundTask
+    -> create DocumentJob(status=pending)
     -> return HTTP 202
 
-Background task (independent database session)
+Worker loop (independent process in Docker Compose)
+    -> claim pending document job with row lock
     -> atomically claim pending document as processing
     -> extract TXT/PDF text
     -> split into overlapping chunks
@@ -211,10 +220,12 @@ the database commit fails, the service attempts to remove the document vectors
 as compensation. Compensation failures are logged instead of hiding the
 original database error.
 
-FastAPI `BackgroundTasks` is intentionally an interim worker mechanism. It
-runs after the response in the API process and is not durable if that process
-stops. The state machine makes progress observable, but a durable queue and
-retry policy remain future work.
+The queue is durable because jobs are stored in PostgreSQL. Docker Compose runs
+the worker as a separate container using the same image and shared upload
+volume. Local native development can also run the worker inside the FastAPI
+process by leaving `DOCUMENT_WORKER_ENABLED=true`, or disable it and run
+`python -m app.worker` separately. On startup, the worker resets interrupted
+processing jobs and documents back to `pending` so they can be retried.
 
 ## Semantic search flow
 

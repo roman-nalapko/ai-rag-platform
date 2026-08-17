@@ -311,7 +311,7 @@ Out of scope:
 
 ### [P1] Replace FastAPI BackgroundTasks with durable queue
 
-Status: Backlog  
+Status: Done  
 Area: ingestion / infra
 
 Problem:
@@ -320,15 +320,16 @@ Problem:
 
 Scope:
 
-- Introduce Redis + Celery or another lightweight worker.
+- Introduce a lightweight PostgreSQL-backed document job queue.
 - Move extraction, chunking, embedding, and Qdrant indexing into a worker.
+- Run a separate Docker Compose worker service for container demos.
 
 Acceptance criteria:
 
-- [ ] Upload returns quickly with `pending`.
-- [ ] Worker processes jobs independently.
-- [ ] Failed jobs persist error state.
-- [ ] Docker Compose starts worker dependencies.
+- [x] Upload returns quickly with `pending`.
+- [x] Worker processes jobs independently.
+- [x] Failed jobs persist error state.
+- [x] Docker Compose starts worker dependencies.
 
 Out of scope:
 

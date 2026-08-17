@@ -32,7 +32,7 @@ help:
 	@echo ""
 	@echo "Run:"
 	@echo "  make docker-up       Start PostgreSQL and Qdrant"
-	@echo "  make docker-api-up   Build and start API container"
+	@echo "  make docker-api-up   Build and start API + worker containers"
 	@echo "  make docker-down     Stop Docker Compose services"
 	@echo "  make run             Run FastAPI locally with reload"
 	@echo ""
@@ -73,7 +73,7 @@ docker-up:
 	docker compose up -d postgres qdrant
 
 docker-api-up:
-	docker compose up -d --build api
+	docker compose up -d --build api worker
 
 docker-down:
 	docker compose down

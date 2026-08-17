@@ -32,5 +32,8 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)
 
+    DOCUMENT_WORKER_ENABLED: bool = True
+    DOCUMENT_WORKER_POLL_SECONDS: float = Field(default=2.0, gt=0)
+
 
 settings = Settings()

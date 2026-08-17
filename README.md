@@ -112,8 +112,14 @@ make migrate-docker
               |                                 |
     +---------v----------+            +---------v----------+
     | PostgreSQL 17      |            | Qdrant             |
-    | tenant data + chat |            | vectors + payload  |
+    | tenants + jobs     |            | vectors + payload  |
     +--------------------+            +--------------------+
+              ^
+              |
+    +---------+----------+
+    | worker service     |
+    | document indexing  |
+    +--------------------+
 ```
 
 The HTTP layer validates requests and maps errors. Services orchestrate use
@@ -144,9 +150,9 @@ Replace these links with real captures as the public demo evolves:
 
 ## Key features
 
-- **RAG ingestion:** PDF/TXT extraction, overlapping chunks, local embeddings,
-  dynamic Qdrant collections, embedding model metadata, and observable
-  processing states.
+- **RAG ingestion:** PDF/TXT extraction, overlapping chunks, durable
+  PostgreSQL-backed jobs, local embeddings, dynamic Qdrant collections,
+  embedding model metadata, and observable processing states.
 - **Upload safety:** configurable raw document size limits and strict PDF/TXT
   MIME validation before indexing starts.
 - **Scoped retrieval:** top-K cosine search with mandatory knowledge-base
@@ -154,7 +160,7 @@ Replace these links with real captures as the public demo evolves:
   metadata.
 - **Grounded chat:** strict context-only prompting, deterministic fallback,
   source attribution, persistent conversation history, and SSE streaming.
-- **SaaS foundation:** users, knowledge bases, documents, chunks,
+- **SaaS foundation:** users, knowledge bases, documents, jobs, chunks,
   conversations, and messages modelled in PostgreSQL with cascade rules.
 - **Failure handling:** explicit provider errors, failed-document diagnostics,
   transactional chunk writes, and compensating Qdrant deletion.
@@ -164,7 +170,8 @@ Replace these links with real captures as the public demo evolves:
 - **Observability:** JSON logs, `X-Request-ID`, and embedding, retrieval,
   generation, and indexing latency events without logging model inputs.
 - **Local deployment:** LM Studio inference with no paid key, versioned Alembic
-  migrations, and a non-root Python 3.14 Docker image.
+  migrations, non-root Python 3.14 Docker images, and separate API/worker
+  containers.
 
 ## API
 
@@ -317,7 +324,7 @@ management.
 5. Start and verify the API:
 
    ```bash
-   docker compose up -d api
+   docker compose up -d api worker
    docker compose ps
    curl http://localhost:8000/health
    ```
@@ -325,7 +332,7 @@ management.
 Follow structured logs or stop the stack:
 
 ```bash
-docker compose logs -f api
+docker compose logs -f api worker
 docker compose down
 ```
 
@@ -572,8 +579,9 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 ## Current limitations
 
 - Database migrations must be applied before starting a new environment.
-- Background indexing uses FastAPI `BackgroundTasks` in the API process. Jobs
-  are not durable across process crashes; Celery/Redis is planned for V1.
+- Document indexing jobs are durable in PostgreSQL. The default local API can
+  run the worker in-process, while Docker Compose runs a separate worker
+  container.
 - Raw uploads use local filesystem storage and are not shared across replicas.
 - Authentication is local demo JWT only; production password login, refresh
   tokens, OAuth, and organization roles are future work.

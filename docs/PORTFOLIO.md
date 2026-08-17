@@ -35,8 +35,8 @@ Explain the system from upload to answer:
 
 1. The upload API validates ownership and file type, stores raw data, creates a
    pending document row, and returns HTTP `202`.
-2. A background task claims the document, extracts text, creates overlapping
-   chunks, and flushes PostgreSQL IDs.
+2. A durable PostgreSQL-backed worker job claims the document, extracts text,
+   creates overlapping chunks, and flushes PostgreSQL IDs.
 3. LM Studio generates embeddings; Qdrant stores vectors plus tenant-scoping
    payload; PostgreSQL records the final indexed or failed state.
 4. Search embeds the question and applies a mandatory knowledge-base Qdrant
@@ -74,7 +74,7 @@ non-root containers, and CI quality gates.
 | LM Studio provider adapter | Local inference and model management through an OpenAI-compatible API | Availability and throughput depend on the developer machine |
 | Knowledge-base payload filter | Enforces retrieval scope inside Qdrant, not only after search | Requires payload discipline and future authorization checks |
 | Dynamic embedding dimensions | Allows model changes without hardcoded vector size | Existing collections must be re-indexed when dimensions change |
-| FastAPI BackgroundTasks | Makes upload responsive without introducing Redis/Celery in the MVP | Jobs are not durable across API restarts |
+| PostgreSQL-backed job queue | Makes upload responsive and survives API restarts without introducing Redis/Celery yet | Lower throughput than a dedicated broker at scale |
 | Overlapping character chunks | Simple, deterministic, and model-independent baseline | Token-aware or semantic chunking can improve retrieval quality |
 | SSE streaming | Simple browser-compatible incremental delivery | No resume protocol or structured source events yet |
 | Local filesystem uploads | Minimal local deployment complexity | Not suitable for horizontally scaled replicas |
@@ -84,7 +84,8 @@ non-root containers, and CI quality gates.
 The current design is appropriate for a local portfolio MVP, not high-volume
 multi-tenant production. A scaling path would include:
 
-- replace `BackgroundTasks` with Celery, Dramatiq, or another durable queue;
+- replace the lightweight PostgreSQL queue with Celery, Dramatiq, or another
+  broker-backed worker when throughput requires it;
 - move raw files to S3-compatible object storage;
 - batch and parallelize embeddings with bounded concurrency and provider rate
   limits;
@@ -110,7 +111,8 @@ Current limitations to state honestly:
 
 - authentication is local demo JWT only, without password login, refresh
   tokens, OAuth, or organization roles;
-- background jobs are in-process and non-durable;
+- worker jobs are durable in PostgreSQL, but not yet distributed through a
+  dedicated broker such as Redis or RabbitMQ;
 - local uploads are not shared between replicas;
 - embeddings are generated sequentially per document;
 - reranking is intentionally simple and local-first rather than a learned
@@ -122,9 +124,9 @@ Current limitations to state honestly:
 - conversation context uses a fixed recent-message window rather than token
   budgeting or summarization.
 
-Good next milestones are durable workers, production auth flows, integration
-tests, object storage, batched embeddings, hybrid retrieval/reranking,
-structured SSE events, and deeper RAG evaluation.
+Good next milestones are broker-backed workers, production auth flows,
+integration tests, object storage, batched embeddings, hybrid
+retrieval/reranking, structured SSE events, and deeper RAG evaluation.
 
 ## Demo strategy
 

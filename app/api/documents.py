@@ -3,7 +3,6 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -26,7 +25,6 @@ from app.services.document import (
     DocumentTooLargeError,
     InvalidFilenameError,
     UnsupportedDocumentTypeError,
-    process_document_background,
 )
 from app.services.knowledge_base import KnowledgeBaseNotFoundError
 
@@ -39,7 +37,6 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def upload_document(
-    background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File(description="PDF or plain-text document")],
     knowledge_base_id: Annotated[
         uuid.UUID,
@@ -81,11 +78,6 @@ async def upload_document(
         ) from error
     finally:
         await file.close()
-
-    background_tasks.add_task(
-        process_document_background,
-        result.document.id,
-    )
 
     return DocumentUploadResponse(
         id=result.document.id,
@@ -156,7 +148,6 @@ async def delete_document(
 @router.post("/{document_id}/reindex", response_model=DocumentDetailResponse)
 async def reindex_document(
     document_id: uuid.UUID,
-    background_tasks: BackgroundTasks,
     session: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> DocumentDetailResponse:
@@ -180,11 +171,6 @@ async def reindex_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(error),
         ) from error
-
-    background_tasks.add_task(
-        process_document_background,
-        result.document.id,
-    )
 
     return DocumentDetailResponse(
         id=result.document.id,

@@ -36,10 +36,6 @@ def document_result(status: str = "pending") -> SimpleNamespace:
     )
 
 
-async def noop_background(_: uuid.UUID) -> None:
-    return None
-
-
 @pytest.mark.asyncio
 async def test_delete_document_returns_204(
     api_client: httpx.AsyncClient,
@@ -96,7 +92,6 @@ async def test_reindex_document_returns_pending_document(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     reindexed_ids: list[uuid.UUID] = []
-    background_ids: list[uuid.UUID] = []
 
     class FakeDocumentService:
         def __init__(self, _: object) -> None:
@@ -110,11 +105,7 @@ async def test_reindex_document_returns_pending_document(
             reindexed_ids.append(document_id)
             return document_result()
 
-    async def fake_background(document_id: uuid.UUID) -> None:
-        background_ids.append(document_id)
-
     monkeypatch.setattr(documents_api, "DocumentService", FakeDocumentService)
-    monkeypatch.setattr(documents_api, "process_document_background", fake_background)
 
     response = await api_client.post(f"/documents/{DOCUMENT_ID}/reindex")
 
@@ -122,7 +113,6 @@ async def test_reindex_document_returns_pending_document(
     assert response.json()["status"] == "pending"
     assert response.json()["chunks_count"] == 0
     assert reindexed_ids == [DOCUMENT_ID]
-    assert background_ids == [DOCUMENT_ID]
 
 
 @pytest.mark.asyncio
@@ -144,7 +134,6 @@ async def test_reindex_document_returns_409_when_processing(
             )
 
     monkeypatch.setattr(documents_api, "DocumentService", FakeDocumentService)
-    monkeypatch.setattr(documents_api, "process_document_background", noop_background)
 
     response = await api_client.post(f"/documents/{DOCUMENT_ID}/reindex")
 

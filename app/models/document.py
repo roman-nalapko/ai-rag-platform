@@ -19,6 +19,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.document_chunk import DocumentChunk
+    from app.models.document_job import DocumentJob
     from app.models.knowledge_base import KnowledgeBase
 
 
@@ -77,4 +78,10 @@ class Document(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="DocumentChunk.chunk_index",
+    )
+    jobs: Mapped[list["DocumentJob"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="DocumentJob.created_at",
     )

@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -17,15 +18,30 @@ from app.core.middleware import RequestLoggingMiddleware
 from app.db.session import dispose_database_engine
 from app.llm.lm_studio_client import close_lm_studio_client
 from app.rag.vector_store import close_vector_store
+from app.services.document_worker import DocumentWorker
 
 configure_logging(settings.LOG_LEVEL)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    stop_worker = asyncio.Event()
+    worker_task: asyncio.Task[None] | None = None
+    if settings.DOCUMENT_WORKER_ENABLED:
+        worker_task = asyncio.create_task(
+            DocumentWorker().run_forever(stop_worker),
+            name="document-worker",
+        )
     try:
         yield
     finally:
+        if worker_task is not None:
+            stop_worker.set()
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
         await close_vector_store()
         await close_lm_studio_client()
         await dispose_database_engine()

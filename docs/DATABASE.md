@@ -3,7 +3,8 @@
 ## PostgreSQL role
 
 PostgreSQL is the system of record for users, knowledge bases, document
-ingestion metadata, extracted text chunks, conversations, and chat messages.
+ingestion metadata, durable indexing jobs, extracted text chunks,
+conversations, and chat messages.
 Qdrant stores derived vectors for retrieval, while PostgreSQL owns tenant
 relationships, document order, and conversation history.
 
@@ -11,7 +12,7 @@ The application uses PostgreSQL 17 through SQLAlchemy's asynchronous engine and
 the `asyncpg` driver. Local Docker Compose exposes the database on port `5432`.
 Raw uploaded files are stored on disk under `storage/uploads/` by default and
 are limited by `UPLOAD_MAX_BYTES`; oversized files are rejected before
-background indexing starts.
+worker indexing starts.
 
 ## Migrations
 
@@ -53,6 +54,8 @@ Conversation memory is introduced by
 `20260704_0003_conversation_memory.py`.
 Asynchronous document state is introduced by
 `20260705_0004_document_processing_status.py`.
+Durable document jobs are introduced by
+`20260705_0005_document_jobs.py`.
 
 ### Existing pre-migration local databases
 
@@ -141,6 +144,28 @@ New uploads start as `pending`; a worker claims them as `processing`, then sets
 `indexed` only after PostgreSQL chunks and Qdrant vectors are persisted. Failed
 work moves to `failed` and records `error_message`. Deleting a knowledge base
 cascades to its documents.
+
+## `document_jobs` table
+
+Each row represents durable indexing work for one uploaded or re-indexed
+document.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | UUID, primary key | Application-generated job identifier |
+| `document_id` | UUID, foreign key | Document to process |
+| `status` | TEXT | `pending`, `processing`, `completed`, or `failed` |
+| `attempts` | INTEGER | Number of worker claims |
+| `error_message` | TEXT, nullable | Safe worker failure summary |
+| `created_at` | TIMESTAMPTZ | Job creation time |
+| `updated_at` | TIMESTAMPTZ | Last state update |
+| `started_at` | TIMESTAMPTZ, nullable | Last worker start time |
+| `completed_at` | TIMESTAMPTZ, nullable | Terminal state time |
+
+`document_id` and `status` are indexed. The worker claims pending jobs with row
+locks, processes the document in an independent database session, and then
+marks the job `completed` or `failed`. On startup, interrupted `processing`
+jobs and documents are reset to `pending` for retry.
 
 ## `document_chunks` table
 

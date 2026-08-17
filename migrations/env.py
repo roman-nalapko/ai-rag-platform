@@ -12,6 +12,7 @@ from app.models import (  # noqa: F401
     Conversation,
     Document,
     DocumentChunk,
+    DocumentJob,
     KnowledgeBase,
     Message,
     User,

@@ -183,10 +183,11 @@ Example response:
 ```
 
 The endpoint returns HTTP `202` after metadata and the raw file are persisted.
-Extraction, chunking, embedding, and Qdrant indexing continue in a FastAPI
-background task. Supported file types are `.txt` with `text/plain` and `.pdf`
-with `application/pdf`. The knowledge base must already exist. Oversized files
-return HTTP `413`; configure the limit with `UPLOAD_MAX_BYTES`.
+Extraction, chunking, embedding, and Qdrant indexing continue through the
+durable document worker. Supported file types are `.txt` with `text/plain` and
+`.pdf` with `application/pdf`. The knowledge base must already exist.
+Oversized files return HTTP `413`; configure the limit with
+`UPLOAD_MAX_BYTES`.
 
 ## Check document processing status
 

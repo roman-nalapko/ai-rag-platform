@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.logging import elapsed_ms
-from app.db.session import AsyncSessionFactory
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk
+from app.models.document_job import DocumentJob
 from app.models.knowledge_base import KnowledgeBase
 from app.rag.vector_store import VectorStoreError, VectorStoreService, get_vector_store
 from app.services.chunking import TextChunkingService
@@ -105,6 +105,7 @@ class DocumentService:
         try:
             await self._store_upload(file, storage_file)
             self._session.add(document)
+            self._session.add(DocumentJob(document_id=document.id))
             await self._session.commit()
         except DocumentStorageError:
             await self._session.rollback()
@@ -190,6 +191,7 @@ class DocumentService:
             document.status = DocumentStatus.PENDING.value
             document.processed = False
             document.error_message = None
+            self._session.add(DocumentJob(document_id=document.id))
             await self._session.commit()
             await self._session.refresh(document)
         except VectorStoreError:
@@ -420,8 +422,3 @@ class DocumentService:
             )
 
         return expected_content_type
-
-
-async def process_document_background(document_id: uuid.UUID) -> None:
-    async with AsyncSessionFactory() as session:
-        await DocumentService(session).process_pending(document_id)

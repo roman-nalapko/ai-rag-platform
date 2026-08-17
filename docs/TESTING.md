@@ -53,7 +53,7 @@ Integration tests live under `tests/integration/` and require real local
 infrastructure:
 
 - SQLAlchemy persistence and Alembic migrations: PostgreSQL 17;
-- document background extraction and status transitions: PostgreSQL plus test
+- document worker extraction and status transitions: PostgreSQL plus test
   upload storage;
 - embeddings and answer generation: LM Studio with configured models;
 - indexing and semantic retrieval: Qdrant and LM Studio;
