@@ -100,7 +100,7 @@ Out of scope:
 
 ### [P1] Add deterministic demo seed script
 
-Status: Review
+Status: Done
 Area: docs / api
 
 Problem:
@@ -115,7 +115,7 @@ Scope:
 
 Acceptance criteria:
 
-- [ ] Script works against local API.
+- [x] Script works against local API.
 - [x] Script prints created IDs and final QA result.
 - [x] Docs explain how to run it.
 
