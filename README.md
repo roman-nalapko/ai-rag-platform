@@ -46,7 +46,8 @@ and deployment workflows.
 **Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
 [architecture](docs/ARCHITECTURE.md) · [interview topics](docs/INTERVIEW.md) ·
 [resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md) ·
-[API collection](docs/api-collection/README.md) · [backlog](BACKLOG.md)
+[API collection](docs/api-collection/README.md) ·
+[deployment](docs/DEPLOYMENT.md) · [backlog](BACKLOG.md)
 
 ## Quick start
 

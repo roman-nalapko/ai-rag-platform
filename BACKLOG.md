@@ -458,7 +458,7 @@ Out of scope:
 
 ### [P3] Add deployment profile
 
-Status: Backlog  
+Status: Done  
 Area: infra
 
 Problem:
@@ -470,11 +470,12 @@ Scope:
 
 - Document a small-cloud deployment path with managed PostgreSQL, Qdrant, and
   external/local-compatible LLM provider.
+- Include API/worker separation and durable job queue implications.
 
 Acceptance criteria:
 
-- [ ] Deployment doc includes required environment variables.
-- [ ] Security and cost limitations are explicit.
+- [x] Deployment doc includes required environment variables.
+- [x] Security and cost limitations are explicit.
 
 Out of scope:
 
