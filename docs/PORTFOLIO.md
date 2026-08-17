@@ -94,7 +94,8 @@ multi-tenant production. A scaling path would include:
 - shard or replicate Qdrant and add payload indexes for tenant filters;
 - add retrieval caching, hybrid dense/sparse search, metadata filters, and a
   reranker;
-- enforce authenticated user/knowledge-base authorization on every operation;
+- expand authorization from user-owned knowledge bases to organization roles
+  and shared workspaces;
 - add quotas, upload-size limits, idempotency keys, retries, and dead-letter
   handling;
 - export OpenTelemetry traces and Prometheus metrics with latency/error SLOs.
@@ -107,7 +108,8 @@ inference server without moving provider-specific HTTP code into routes.
 
 Current limitations to state honestly:
 
-- no JWT authentication or authorization enforcement;
+- authentication is local demo JWT only, without password login, refresh
+  tokens, OAuth, or organization roles;
 - background jobs are in-process and non-durable;
 - local uploads are not shared between replicas;
 - embeddings are generated sequentially per document;
@@ -120,9 +122,9 @@ Current limitations to state honestly:
 - conversation context uses a fixed recent-message window rather than token
   budgeting or summarization.
 
-Good next milestones are durable workers, authentication, integration tests,
-object storage, batched embeddings, hybrid retrieval/reranking, structured SSE
-events, and deeper RAG evaluation.
+Good next milestones are durable workers, production auth flows, integration
+tests, object storage, batched embeddings, hybrid retrieval/reranking,
+structured SSE events, and deeper RAG evaluation.
 
 ## Demo strategy
 

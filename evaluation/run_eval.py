@@ -144,6 +144,7 @@ def call_qa(
     api_url: str,
     case: EvaluationCase,
     knowledge_base_id: str,
+    access_token: str | None,
     limit: int,
     timeout: float,
 ) -> QAResult:
@@ -154,10 +155,14 @@ def call_qa(
             "limit": limit,
         }
     ).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
+
     request = Request(
         f"{api_url.rstrip('/')}/qa/ask",
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 
@@ -214,6 +219,7 @@ def evaluate_case(
     case: EvaluationCase,
     api_url: str,
     fallback_knowledge_base_id: str | None,
+    access_token: str | None,
     limit: int,
     timeout: float,
 ) -> EvaluationResult:
@@ -239,6 +245,7 @@ def evaluate_case(
             api_url=api_url,
             case=case,
             knowledge_base_id=knowledge_base_id,
+            access_token=access_token,
             limit=limit,
             timeout=timeout,
         )
@@ -361,6 +368,11 @@ def parse_args() -> argparse.Namespace:
         default=os.getenv("EVAL_KNOWLEDGE_BASE_ID"),
         help="Override knowledge_base_id for every evaluation question.",
     )
+    parser.add_argument(
+        "--access-token",
+        default=os.getenv("EVAL_ACCESS_TOKEN"),
+        help="Bearer token for protected QA requests.",
+    )
     parser.add_argument("--limit", type=int, default=5, choices=range(1, 11))
     parser.add_argument("--timeout", type=float, default=300.0)
     return parser.parse_args()
@@ -386,6 +398,7 @@ def main() -> int:
             case=case,
             api_url=args.api_url,
             fallback_knowledge_base_id=args.knowledge_base_id,
+            access_token=args.access_token,
             limit=args.limit,
             timeout=args.timeout,
         )

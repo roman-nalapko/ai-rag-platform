@@ -80,11 +80,38 @@ Example response:
 
 Duplicate normalized emails return HTTP `409`.
 
+## Create a demo JWT
+
+Most application endpoints require a Bearer token. The project uses local demo
+JWT issuance for portfolio/demo workflows; it does not store passwords or
+implement OAuth.
+
+```bash
+TOKEN_RESPONSE=$(curl --silent --show-error \
+  -X POST http://localhost:8000/auth/demo-token \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"11111111-1111-1111-1111-111111111111"}')
+
+echo "$TOKEN_RESPONSE"
+TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+```
+
+Example response:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+```
+
 ## Create a knowledge base
 
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/knowledge-bases \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "user_id":"11111111-1111-1111-1111-111111111111",
@@ -109,6 +136,7 @@ Example response:
 
 ```bash
 curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8000/knowledge-bases?user_id=11111111-1111-1111-1111-111111111111&limit=50&offset=0"
 ```
 
@@ -122,6 +150,7 @@ Upload a UTF-8 TXT file:
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
   -F "knowledge_base_id=22222222-2222-2222-2222-222222222222" \
   -F "file=@document.txt;type=text/plain"
 ```
@@ -131,6 +160,7 @@ Upload a PDF file:
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
   -F "knowledge_base_id=22222222-2222-2222-2222-222222222222" \
   -F "file=@document.pdf;type=application/pdf"
 ```
@@ -162,6 +192,7 @@ return HTTP `413`; configure the limit with `UPLOAD_MAX_BYTES`.
 
 ```bash
 curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
   http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580
 ```
 
@@ -197,7 +228,8 @@ embedding model name for inspection and troubleshooting.
 
 ```bash
 curl --silent --show-error \
-  -X POST http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580/reindex
+  -X POST http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580/reindex \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Delete a document
@@ -207,7 +239,8 @@ stored upload file.
 
 ```bash
 curl --silent --show-error \
-  -X DELETE http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580
+  -X DELETE http://localhost:8000/documents/f914fdc8-ad6c-4c55-afc6-1039a82ff580 \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 Successful deletion returns HTTP `204`.
@@ -217,6 +250,7 @@ Successful deletion returns HTTP `204`.
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/search \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id": "22222222-2222-2222-2222-222222222222",
@@ -259,6 +293,7 @@ retrieval path.
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/qa/ask \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id": "22222222-2222-2222-2222-222222222222",
@@ -301,6 +336,7 @@ chat context bounded.
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/conversations \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -329,6 +365,7 @@ the prompt and persist the new user/assistant exchange:
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/qa/ask \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -349,6 +386,7 @@ Use `curl -N` to disable output buffering and display tokens as they arrive:
 ```bash
 curl -N --silent --show-error \
   -X POST http://localhost:8000/qa/ask/stream \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" \
   -d '{
@@ -380,6 +418,7 @@ assistant message is not persisted.
 
 ```bash
 curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
   http://localhost:8000/conversations/33333333-3333-3333-3333-333333333333/messages
 ```
 
@@ -409,6 +448,8 @@ Example response:
 | Status | Meaning |
 | --- | --- |
 | `400` | Invalid upload filename |
+| `401` | Missing, invalid, or expired Bearer token |
+| `403` | Authenticated user targets another user's explicit user ID |
 | `404` | Referenced user, knowledge base, or conversation does not exist |
 | `409` | A user with the same normalized email already exists |
 | `415` | Unsupported upload extension or media type |

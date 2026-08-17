@@ -10,6 +10,10 @@ delete {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
 docs {
   Removes document metadata, chunks, Qdrant vectors, and the stored raw upload.
   Run this after search/QA examples if you still need the document for testing.

@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.qa import QARequest, QAResponse, QASourceResponse
 from app.services.qa import (
     QAConversationNotFoundError,
@@ -28,6 +30,7 @@ def _format_sse(token: str) -> str:
 async def ask_question(
     request: QARequest,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> QAResponse:
     service = get_qa_service(session)
     try:
@@ -35,6 +38,7 @@ async def ask_question(
             request.question,
             request.limit,
             request.knowledge_base_id,
+            current_user.id,
             request.conversation_id,
         )
     except (QAKnowledgeBaseNotFoundError, QAConversationNotFoundError) as error:
@@ -78,6 +82,7 @@ async def ask_question(
 async def stream_answer(
     request: QARequest,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> StreamingResponse:
     service = get_qa_service(session)
     try:
@@ -85,6 +90,7 @@ async def stream_answer(
             request.question,
             request.limit,
             request.knowledge_base_id,
+            current_user.id,
             request.conversation_id,
         )
     except (QAKnowledgeBaseNotFoundError, QAConversationNotFoundError) as error:

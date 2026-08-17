@@ -23,6 +23,7 @@ jobs:
       LM_STUDIO_API_KEY: lm-studio
       LM_STUDIO_CHAT_MODEL: ci-placeholder-chat-model
       LM_STUDIO_EMBEDDING_MODEL: ci-placeholder-embedding-model
+      JWT_SECRET_KEY: ci-placeholder-secret
 
     steps:
       - name: Check out repository

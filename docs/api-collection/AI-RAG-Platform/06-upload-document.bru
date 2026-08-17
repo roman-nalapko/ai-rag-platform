@@ -10,6 +10,10 @@ post {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
 body:multipart-form {
   knowledge_base_id: {{knowledge_base_id}}
   file: @examples/sample_document.txt

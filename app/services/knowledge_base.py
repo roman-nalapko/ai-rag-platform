@@ -15,6 +15,10 @@ class KnowledgeBaseNotFoundError(ValueError):
     """Raised when a requested knowledge base does not exist."""
 
 
+class KnowledgeBaseAccessDeniedError(ValueError):
+    """Raised when the authenticated user targets another user's data."""
+
+
 class KnowledgeBaseService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -24,7 +28,10 @@ class KnowledgeBaseService:
         user_id: uuid.UUID,
         name: str,
         description: str | None,
+        current_user_id: uuid.UUID,
     ) -> KnowledgeBase:
+        if user_id != current_user_id:
+            raise KnowledgeBaseAccessDeniedError("Knowledge base owner mismatch")
         if await self._session.get(User, user_id) is None:
             raise UserNotFoundError("User not found")
 
@@ -49,7 +56,10 @@ class KnowledgeBaseService:
         user_id: uuid.UUID,
         limit: int,
         offset: int,
+        current_user_id: uuid.UUID,
     ) -> list[KnowledgeBase]:
+        if user_id != current_user_id:
+            raise KnowledgeBaseAccessDeniedError("Knowledge base owner mismatch")
         if await self._session.get(User, user_id) is None:
             raise UserNotFoundError("User not found")
 

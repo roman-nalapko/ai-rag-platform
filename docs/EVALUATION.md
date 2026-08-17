@@ -46,7 +46,8 @@ base has indexed documents, then run:
 
 ```bash
 python evaluation/run_eval.py \
-  --knowledge-base-id 22222222-2222-2222-2222-222222222222
+  --knowledge-base-id 22222222-2222-2222-2222-222222222222 \
+  --access-token "$TOKEN"
 ```
 
 Optional configuration:
@@ -56,6 +57,7 @@ python evaluation/run_eval.py \
   --questions evaluation/test_questions.json \
   --api-url http://localhost:8000 \
   --knowledge-base-id 22222222-2222-2222-2222-222222222222 \
+  --access-token "$TOKEN" \
   --limit 5 \
   --timeout 300
 ```
@@ -63,8 +65,8 @@ python evaluation/run_eval.py \
 The 300-second default accommodates small local models on memory-constrained
 Apple Silicon. Reduce it when your model and hardware are consistently faster.
 
-The API URL and knowledge base can also be supplied through
-`EVAL_API_URL` and `EVAL_KNOWLEDGE_BASE_ID`.
+The API URL, knowledge base, and token can also be supplied through
+`EVAL_API_URL`, `EVAL_KNOWLEDGE_BASE_ID`, and `EVAL_ACCESS_TOKEN`.
 
 The command exits with code `0` when every case passes, `1` when any case
 fails, and `2` for invalid evaluator configuration. This makes it suitable for

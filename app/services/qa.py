@@ -75,12 +75,14 @@ class QAService:
         question: str,
         limit: int,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None = None,
     ) -> QAResult:
         sources, history = await self._prepare_request(
             question=question,
             limit=limit,
             knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
             conversation_id=conversation_id,
         )
 
@@ -93,6 +95,7 @@ class QAService:
             await self._save_exchange(
                 conversation_id,
                 knowledge_base_id,
+                current_user_id,
                 result,
             )
             return result
@@ -117,6 +120,7 @@ class QAService:
         await self._save_exchange(
             conversation_id,
             knowledge_base_id,
+            current_user_id,
             result,
         )
         return result
@@ -126,12 +130,14 @@ class QAService:
         question: str,
         limit: int,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None = None,
     ) -> AsyncIterator[str]:
         sources, history = await self._prepare_request(
             question=question,
             limit=limit,
             knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
             conversation_id=conversation_id,
         )
 
@@ -139,6 +145,7 @@ class QAService:
             return self._stream_fallback(
                 question=question,
                 knowledge_base_id=knowledge_base_id,
+                current_user_id=current_user_id,
                 conversation_id=conversation_id,
             )
 
@@ -156,6 +163,7 @@ class QAService:
             token_stream=token_stream,
             question=question,
             knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
             conversation_id=conversation_id,
             sources=sources,
         )
@@ -165,6 +173,7 @@ class QAService:
         question: str,
         limit: int,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None,
     ) -> tuple[list[SearchMatch], list[ChatCompletionMessageParam]]:
         history: list[ChatCompletionMessageParam] = []
@@ -174,6 +183,7 @@ class QAService:
                     await self._conversation_service.get_recent_messages(
                         conversation_id,
                         knowledge_base_id,
+                        current_user_id,
                         limit=5,
                     )
                 )
@@ -194,6 +204,7 @@ class QAService:
                 question,
                 limit,
                 knowledge_base_id,
+                current_user_id,
             )
         except SearchKnowledgeBaseNotFoundError as error:
             raise QAKnowledgeBaseNotFoundError("Knowledge base not found") from error
@@ -208,12 +219,14 @@ class QAService:
         self,
         question: str,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None,
     ) -> AsyncIterator[str]:
         yield INSUFFICIENT_CONTEXT_ANSWER
         await self._save_exchange(
             conversation_id,
             knowledge_base_id,
+            current_user_id,
             QAResult(
                 question=question,
                 answer=INSUFFICIENT_CONTEXT_ANSWER,
@@ -226,6 +239,7 @@ class QAService:
         token_stream: AsyncIterator[str],
         question: str,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None,
         sources: list[SearchMatch],
     ) -> AsyncIterator[str]:
@@ -251,6 +265,7 @@ class QAService:
         await self._save_exchange(
             conversation_id,
             knowledge_base_id,
+            current_user_id,
             QAResult(question=question, answer=answer, sources=sources),
         )
 
@@ -270,6 +285,7 @@ class QAService:
         self,
         conversation_id: uuid.UUID | None,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         result: QAResult,
     ) -> None:
         if conversation_id is None:
@@ -278,6 +294,7 @@ class QAService:
             await self._conversation_service.save_exchange(
                 conversation_id=conversation_id,
                 knowledge_base_id=knowledge_base_id,
+                current_user_id=current_user_id,
                 question=result.question,
                 answer=result.answer,
             )

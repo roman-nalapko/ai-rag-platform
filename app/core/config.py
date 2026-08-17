@@ -29,5 +29,8 @@ class Settings(BaseSettings):
     RERANKING_ENABLED: bool = False
     RERANKING_CANDIDATE_MULTIPLIER: int = Field(default=3, ge=1, le=10)
 
+    JWT_SECRET_KEY: str = Field(min_length=1)
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, ge=1)
+
 
 settings = Settings()

@@ -4,9 +4,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.knowledge_base import KnowledgeBaseCreate, KnowledgeBaseResponse
-from app.services.knowledge_base import KnowledgeBaseService, UserNotFoundError
+from app.services.knowledge_base import (
+    KnowledgeBaseAccessDeniedError,
+    KnowledgeBaseService,
+    UserNotFoundError,
+)
 
 router = APIRouter(prefix="/knowledge-bases", tags=["Knowledge Bases"])
 
@@ -19,16 +25,23 @@ router = APIRouter(prefix="/knowledge-bases", tags=["Knowledge Bases"])
 async def create_knowledge_base(
     request: KnowledgeBaseCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> KnowledgeBaseResponse:
     try:
         knowledge_base = await KnowledgeBaseService(session).create(
             user_id=request.user_id,
             name=request.name,
             description=request.description,
+            current_user_id=current_user.id,
         )
     except UserNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except KnowledgeBaseAccessDeniedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
         ) from error
 
@@ -39,6 +52,7 @@ async def create_knowledge_base(
 async def list_knowledge_bases(
     user_id: Annotated[uuid.UUID, Query(description="Knowledge base owner")],
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     limit: Annotated[
         int,
         Query(ge=1, le=100, description="Maximum number of records to return"),
@@ -53,10 +67,16 @@ async def list_knowledge_bases(
             user_id=user_id,
             limit=limit,
             offset=offset,
+            current_user_id=current_user.id,
         )
     except UserNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except KnowledgeBaseAccessDeniedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=str(error),
         ) from error
 

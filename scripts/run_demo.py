@@ -75,14 +75,29 @@ def create_user(client: httpx.Client, email: str) -> dict[str, Any]:
     )
 
 
+def create_demo_token(client: httpx.Client, user_id: str) -> dict[str, Any]:
+    return request_json(
+        client,
+        "POST",
+        "/auth/demo-token",
+        json={"user_id": user_id},
+    )
+
+
+def auth_headers(access_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {access_token}"}
+
+
 def create_knowledge_base(
     client: httpx.Client,
     user_id: str,
+    access_token: str,
 ) -> dict[str, Any]:
     return request_json(
         client,
         "POST",
         "/knowledge-bases",
+        headers=auth_headers(access_token),
         json={
             "user_id": user_id,
             "name": "AI RAG Platform Demo",
@@ -95,6 +110,7 @@ def upload_document(
     client: httpx.Client,
     knowledge_base_id: str,
     sample_file: Path,
+    access_token: str,
 ) -> dict[str, Any]:
     if not sample_file.exists():
         raise DemoError(f"Sample document does not exist: {sample_file}")
@@ -104,6 +120,7 @@ def upload_document(
             client,
             "POST",
             "/documents/upload",
+            headers=auth_headers(access_token),
             data={"knowledge_base_id": knowledge_base_id},
             files={
                 "file": (
@@ -118,6 +135,7 @@ def upload_document(
 def wait_for_indexing(
     client: httpx.Client,
     document_id: str,
+    access_token: str,
     poll_interval_seconds: float,
     poll_timeout_seconds: float,
 ) -> dict[str, Any]:
@@ -125,7 +143,12 @@ def wait_for_indexing(
     last_payload: dict[str, Any] | None = None
 
     while time.monotonic() < deadline:
-        payload = request_json(client, "GET", f"/documents/{document_id}")
+        payload = request_json(
+            client,
+            "GET",
+            f"/documents/{document_id}",
+            headers=auth_headers(access_token),
+        )
         last_payload = payload
         status = payload.get("status")
         chunks_count = payload.get("chunks_count")
@@ -147,12 +170,14 @@ def wait_for_indexing(
 def semantic_search(
     client: httpx.Client,
     knowledge_base_id: str,
+    access_token: str,
     limit: int,
 ) -> dict[str, Any]:
     return request_json(
         client,
         "POST",
         "/search",
+        headers=auth_headers(access_token),
         json={
             "knowledge_base_id": knowledge_base_id,
             "query": "Which databases does the platform use?",
@@ -164,12 +189,14 @@ def semantic_search(
 def ask_question(
     client: httpx.Client,
     knowledge_base_id: str,
+    access_token: str,
     limit: int,
 ) -> dict[str, Any]:
     return request_json(
         client,
         "POST",
         "/qa/ask",
+        headers=auth_headers(access_token),
         json={
             "knowledge_base_id": knowledge_base_id,
             "question": "What dependencies does the project use?",
@@ -270,35 +297,42 @@ def run_demo(config: DemoConfig) -> None:
         user_id = str(user["id"])
         print(pretty(user))
 
-        print("\n3. Create knowledge base")
-        knowledge_base = create_knowledge_base(client, user_id)
+        print("\n3. Create demo JWT")
+        token = create_demo_token(client, user_id)
+        access_token = str(token["access_token"])
+        print(pretty({"token_type": token["token_type"], "expires_in": token["expires_in"]}))
+
+        print("\n4. Create knowledge base")
+        knowledge_base = create_knowledge_base(client, user_id, access_token)
         knowledge_base_id = str(knowledge_base["id"])
         print(pretty(knowledge_base))
 
-        print("\n4. Upload sample document")
+        print("\n5. Upload sample document")
         document = upload_document(
             client,
             knowledge_base_id,
             config.sample_file,
+            access_token,
         )
         document_id = str(document["id"])
         print(pretty(document))
 
-        print("\n5. Poll indexing status")
+        print("\n6. Poll indexing status")
         indexed_document = wait_for_indexing(
             client,
             document_id,
+            access_token,
             config.poll_interval_seconds,
             config.poll_timeout_seconds,
         )
         print(pretty(indexed_document))
 
-        print("\n6. Semantic search")
-        search = semantic_search(client, knowledge_base_id, config.limit)
+        print("\n7. Semantic search")
+        search = semantic_search(client, knowledge_base_id, access_token, config.limit)
         print(pretty(search))
 
-        print("\n7. RAG QA")
-        qa = ask_question(client, knowledge_base_id, config.limit)
+        print("\n8. RAG QA")
+        qa = ask_question(client, knowledge_base_id, access_token, config.limit)
         print(pretty(qa))
 
         print("\nDemo completed")

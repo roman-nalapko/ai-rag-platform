@@ -1,0 +1,25 @@
+meta {
+  name: 05 Create Demo Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/auth/demo-token
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "user_id": "{{user_id}}"
+  }
+}
+
+docs {
+  Copy the returned `access_token` into the `access_token` environment variable.
+}

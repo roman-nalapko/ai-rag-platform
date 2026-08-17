@@ -79,7 +79,9 @@ because it records a revision without creating tables. Fresh databases must use
 | `email` | VARCHAR(320), unique | Normalized account email |
 | `created_at` | TIMESTAMPTZ | Database-generated creation time |
 
-No password or authentication credential is stored in STEP 10.
+No password or long-lived authentication credential is stored. The current auth
+flow issues short-lived local demo JWTs for existing users and keeps signing
+configuration in environment variables.
 
 ## `knowledge_bases` table
 

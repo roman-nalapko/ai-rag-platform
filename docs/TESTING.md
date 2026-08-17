@@ -8,6 +8,7 @@ pytest from the repository root:
 ```bash
 source venv/bin/activate
 pip install -r requirements.txt
+export JWT_SECRET_KEY=test-secret
 pytest
 ```
 
@@ -29,6 +30,9 @@ The fast automated suite covers:
 
 - the `/health` response contract;
 - generation, UUID format, uniqueness, and propagation of `X-Request-ID`;
+- local JWT creation and missing-token rejection;
+- tenant-isolation boundaries for knowledge bases, documents, conversations,
+  and search;
 - user creation payload validation;
 - knowledge-base creation payload validation;
 - semantic-search request validation and limits;

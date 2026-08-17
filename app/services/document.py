@@ -82,11 +82,13 @@ class DocumentService:
         self,
         file: UploadFile,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
     ) -> DocumentResult:
         filename = self._normalize_filename(file.filename)
         content_type = self._validate_content_type(filename, file.content_type)
         self._validate_file_size(file.size)
-        if await self._session.get(KnowledgeBase, knowledge_base_id) is None:
+        knowledge_base = await self._session.get(KnowledgeBase, knowledge_base_id)
+        if knowledge_base is None or knowledge_base.user_id != current_user_id:
             raise KnowledgeBaseNotFoundError("Knowledge base not found")
 
         document = Document(
@@ -114,9 +116,16 @@ class DocumentService:
 
         return DocumentResult(document=document, chunks_count=0)
 
-    async def get(self, document_id: uuid.UUID) -> DocumentResult:
+    async def get(
+        self,
+        document_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> DocumentResult:
         document = await self._session.get(Document, document_id)
-        if document is None:
+        if document is None or not await self._document_belongs_to_user(
+            document,
+            current_user_id,
+        ):
             raise DocumentNotFoundError("Document not found")
 
         chunks_count = await self._session.scalar(
@@ -129,9 +138,12 @@ class DocumentService:
             chunks_count=int(chunks_count or 0),
         )
 
-    async def delete(self, document_id: uuid.UUID) -> None:
+    async def delete(self, document_id: uuid.UUID, current_user_id: uuid.UUID) -> None:
         document = await self._session.get(Document, document_id)
-        if document is None:
+        if document is None or not await self._document_belongs_to_user(
+            document,
+            current_user_id,
+        ):
             raise DocumentNotFoundError("Document not found")
         if document.status == DocumentStatus.PROCESSING.value:
             raise DocumentAlreadyProcessingError(
@@ -154,9 +166,16 @@ class DocumentService:
             missing_ok=True,
         )
 
-    async def enqueue_reindex(self, document_id: uuid.UUID) -> DocumentResult:
+    async def enqueue_reindex(
+        self,
+        document_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> DocumentResult:
         document = await self._session.get(Document, document_id)
-        if document is None:
+        if document is None or not await self._document_belongs_to_user(
+            document,
+            current_user_id,
+        ):
             raise DocumentNotFoundError("Document not found")
         if document.status == DocumentStatus.PROCESSING.value:
             raise DocumentAlreadyProcessingError(
@@ -358,6 +377,17 @@ class DocumentService:
         if self._vector_store is None:
             self._vector_store = get_vector_store()
         return self._vector_store
+
+    async def _document_belongs_to_user(
+        self,
+        document: Document,
+        current_user_id: uuid.UUID,
+    ) -> bool:
+        knowledge_base = await self._session.get(
+            KnowledgeBase,
+            document.knowledge_base_id,
+        )
+        return knowledge_base is not None and knowledge_base.user_id == current_user_id
 
     @staticmethod
     def _normalize_filename(filename: str | None) -> str:

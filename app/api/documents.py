@@ -13,7 +13,9 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.rag.vector_store import VectorStoreError
 from app.schemas.document import DocumentDetailResponse, DocumentUploadResponse
 from app.services.document import (
@@ -44,11 +46,13 @@ async def upload_document(
         Form(description="Destination knowledge base ID"),
     ],
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> DocumentUploadResponse:
     try:
         result = await DocumentService(session).create_from_upload(
             file,
             knowledge_base_id,
+            current_user.id,
         )
     except InvalidFilenameError as error:
         raise HTTPException(
@@ -101,9 +105,10 @@ async def upload_document(
 async def get_document(
     document_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> DocumentDetailResponse:
     try:
-        result = await DocumentService(session).get(document_id)
+        result = await DocumentService(session).get(document_id, current_user.id)
     except DocumentNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -127,9 +132,10 @@ async def get_document(
 async def delete_document(
     document_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     try:
-        await DocumentService(session).delete(document_id)
+        await DocumentService(session).delete(document_id, current_user.id)
     except DocumentNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -152,9 +158,13 @@ async def reindex_document(
     document_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> DocumentDetailResponse:
     try:
-        result = await DocumentService(session).enqueue_reindex(document_id)
+        result = await DocumentService(session).enqueue_reindex(
+            document_id,
+            current_user.id,
+        )
     except DocumentNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

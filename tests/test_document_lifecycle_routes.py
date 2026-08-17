@@ -51,7 +51,11 @@ async def test_delete_document_returns_204(
         def __init__(self, _: object) -> None:
             pass
 
-        async def delete(self, document_id: uuid.UUID) -> None:
+        async def delete(
+            self,
+            document_id: uuid.UUID,
+            current_user_id: uuid.UUID,
+        ) -> None:
             deleted_ids.append(document_id)
 
     monkeypatch.setattr(documents_api, "DocumentService", FakeDocumentService)
@@ -71,7 +75,11 @@ async def test_delete_document_returns_404_when_missing(
         def __init__(self, _: object) -> None:
             pass
 
-        async def delete(self, _: uuid.UUID) -> None:
+        async def delete(
+            self,
+            _: uuid.UUID,
+            current_user_id: uuid.UUID,
+        ) -> None:
             raise DocumentNotFoundError("Document not found")
 
     monkeypatch.setattr(documents_api, "DocumentService", FakeDocumentService)
@@ -94,7 +102,11 @@ async def test_reindex_document_returns_pending_document(
         def __init__(self, _: object) -> None:
             pass
 
-        async def enqueue_reindex(self, document_id: uuid.UUID) -> Any:
+        async def enqueue_reindex(
+            self,
+            document_id: uuid.UUID,
+            current_user_id: uuid.UUID,
+        ) -> Any:
             reindexed_ids.append(document_id)
             return document_result()
 
@@ -122,7 +134,11 @@ async def test_reindex_document_returns_409_when_processing(
         def __init__(self, _: object) -> None:
             pass
 
-        async def enqueue_reindex(self, _: uuid.UUID) -> Any:
+        async def enqueue_reindex(
+            self,
+            _: uuid.UUID,
+            current_user_id: uuid.UUID,
+        ) -> Any:
             raise DocumentAlreadyProcessingError(
                 "Document is currently being processed"
             )

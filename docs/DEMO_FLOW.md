@@ -19,9 +19,9 @@ Equivalent direct command:
 python scripts/run_demo.py --api-url http://localhost:8000
 ```
 
-The script creates a unique demo user, creates a knowledge base, uploads
-`examples/sample_document.txt`, polls indexing status, runs semantic search,
-and asks a grounded RAG question. It prints the created `user_id`,
+The script creates a unique demo user, issues a local demo JWT, creates a
+knowledge base, uploads `examples/sample_document.txt`, polls indexing status,
+runs semantic search, and asks a grounded RAG question. It prints the created `user_id`,
 `knowledge_base_id`, and `document_id` at the end.
 
 Use the manual steps below when you want to inspect each API request.
@@ -40,11 +40,26 @@ USER_ID=$(echo "$USER_RESPONSE" | jq -r '.id')
 
 Use a different email if the demo user already exists.
 
-## 2. Create a knowledge base
+## 2. Create a demo JWT
+
+```bash
+TOKEN_RESPONSE=$(curl --silent --show-error \
+  -X POST http://localhost:8000/auth/demo-token \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"user_id\": \"$USER_ID\"
+  }")
+
+echo "$TOKEN_RESPONSE" | jq
+TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+```
+
+## 3. Create a knowledge base
 
 ```bash
 KB_RESPONSE=$(curl --silent --show-error \
   -X POST http://localhost:8000/knowledge-bases \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"user_id\": \"$USER_ID\",
@@ -56,13 +71,14 @@ echo "$KB_RESPONSE" | jq
 KNOWLEDGE_BASE_ID=$(echo "$KB_RESPONSE" | jq -r '.id')
 ```
 
-## 3. Upload the sample document
+## 4. Upload the sample document
 
 Run this command from the repository root:
 
 ```bash
 DOCUMENT_RESPONSE=$(curl --silent --show-error \
   -X POST http://localhost:8000/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
   -F "knowledge_base_id=$KNOWLEDGE_BASE_ID" \
   -F "file=@examples/sample_document.txt;type=text/plain")
 
@@ -72,21 +88,23 @@ DOCUMENT_ID=$(echo "$DOCUMENT_RESPONSE" | jq -r '.id')
 
 The upload response is HTTP `202` and initially reports `status: pending`.
 
-## 4. Poll indexing status
+## 5. Poll indexing status
 
 ```bash
 curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8000/documents/$DOCUMENT_ID" | jq
 ```
 
 Repeat until `status` is `indexed`. A `failed` status includes an
 `error_message`. LM Studio must have the configured embedding model loaded.
 
-## 5. Run semantic search
+## 6. Run semantic search
 
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/search \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"knowledge_base_id\": \"$KNOWLEDGE_BASE_ID\",
@@ -98,11 +116,12 @@ curl --silent --show-error \
 The response contains ranked chunks, similarity scores, document IDs, and chunk
 IDs. All results are filtered to the selected knowledge base.
 
-## 6. Ask a grounded question
+## 7. Ask a grounded question
 
 ```bash
 curl --silent --show-error \
   -X POST http://localhost:8000/qa/ask \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
     \"knowledge_base_id\": \"$KNOWLEDGE_BASE_ID\",
@@ -113,13 +132,14 @@ curl --silent --show-error \
 
 The answer includes the retrieved source chunks used as evidence.
 
-## 7. Stream a RAG answer
+## 8. Stream a RAG answer
 
 `curl -N` disables output buffering so SSE tokens appear as they are generated:
 
 ```bash
 curl -N --silent --show-error \
   -X POST http://localhost:8000/qa/ask/stream \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" \
   -d "{
@@ -131,13 +151,14 @@ curl -N --silent --show-error \
 
 The final event is `data: [DONE]`.
 
-## 8. Run the offline evaluation
+## 9. Run the offline evaluation
 
 The bundled evaluation case matches facts in the sample document:
 
 ```bash
 python evaluation/run_eval.py \
-  --knowledge-base-id "$KNOWLEDGE_BASE_ID"
+  --knowledge-base-id "$KNOWLEDGE_BASE_ID" \
+  --access-token "$TOKEN"
 ```
 
 Expected report fields:

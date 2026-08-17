@@ -61,6 +61,7 @@ The API layer owns HTTP concerns:
 
 - Route registration and status codes
 - FastAPI dependency injection
+- Bearer token validation for protected application endpoints
 - Request/response schema selection
 - Mapping application exceptions to HTTP errors
 - Closing uploaded files
@@ -87,6 +88,7 @@ The service layer contains application use cases:
   and persists the completed exchange.
 - `conversation.py` creates knowledge-base-scoped conversations, reads ordered
   history, and writes user/assistant message pairs transactionally.
+- `auth.py` issues local demo JWTs for existing users.
 - `llm_health.py` verifies the configured embedding model and reports its
   dynamic dimensions.
 - `readiness.py` checks required runtime dependencies for `/health/ready`
@@ -94,6 +96,8 @@ The service layer contains application use cases:
 
 Services translate provider failures into application-level exceptions so the
 API layer can distinguish LM Studio unavailability from Qdrant failures.
+Tenant-sensitive services also verify that the target knowledge base, document,
+or conversation belongs to the authenticated user.
 
 ### `app/rag`
 
@@ -149,7 +153,7 @@ SQLAlchemy models define the relational persistence model:
 
 - `Document` stores upload metadata and processing state.
 - `DocumentChunk` stores ordered extracted text and references its document.
-- `User` is the root owner for future tenant authentication.
+- `User` is the root owner for tenant-scoped API access.
 - `KnowledgeBase` groups documents under one user.
 - `Conversation` scopes a persistent chat to one knowledge base.
 - `Message` stores ordered `user` and `assistant` turns.
@@ -216,8 +220,9 @@ retry policy remain future work.
 
 ```text
 POST /search
+    -> validate Bearer token
     -> validate knowledge base ID, query, and limit
-    -> verify the knowledge base exists in PostgreSQL
+    -> verify the knowledge base exists and belongs to the authenticated user
     -> generate query embedding through LM Studio
     -> query Qdrant with cosine similarity and knowledge-base filter
     -> optionally rerank candidate chunks locally
@@ -237,7 +242,8 @@ only when reranking is explicitly enabled.
 
 ```text
 POST /qa/ask or /qa/ask/stream
-    -> optionally validate conversation belongs to the knowledge base
+    -> validate Bearer token
+    -> optionally validate conversation belongs to the knowledge base and user
     -> load its last five messages in chronological order
     -> reuse knowledge-base-scoped semantic search
     -> format top chunks as labelled context

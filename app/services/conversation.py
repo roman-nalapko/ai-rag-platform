@@ -25,8 +25,10 @@ class ConversationService:
         self,
         knowledge_base_id: uuid.UUID,
         title: str | None,
+        current_user_id: uuid.UUID,
     ) -> Conversation:
-        if await self._session.get(KnowledgeBase, knowledge_base_id) is None:
+        knowledge_base = await self._session.get(KnowledgeBase, knowledge_base_id)
+        if knowledge_base is None or knowledge_base.user_id != current_user_id:
             raise ConversationKnowledgeBaseNotFoundError("Knowledge base not found")
 
         conversation = Conversation(
@@ -44,8 +46,15 @@ class ConversationService:
 
         return conversation
 
-    async def get_messages(self, conversation_id: uuid.UUID) -> list[Message]:
-        if await self._session.get(Conversation, conversation_id) is None:
+    async def get_messages(
+        self,
+        conversation_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> list[Message]:
+        if not await self._conversation_belongs_to_user(
+            conversation_id,
+            current_user_id,
+        ):
             raise ConversationNotFoundError("Conversation not found")
 
         result = await self._session.execute(
@@ -59,11 +68,13 @@ class ConversationService:
         self,
         conversation_id: uuid.UUID,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         limit: int = 5,
     ) -> list[Message]:
         await self._require_scoped_conversation(
             conversation_id,
             knowledge_base_id,
+            current_user_id,
         )
         result = await self._session.execute(
             select(Message)
@@ -77,12 +88,14 @@ class ConversationService:
         self,
         conversation_id: uuid.UUID,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
         question: str,
         answer: str,
     ) -> None:
         await self._require_scoped_conversation(
             conversation_id,
             knowledge_base_id,
+            current_user_id,
         )
         created_at = datetime.now(UTC)
         self._session.add_all(
@@ -112,11 +125,33 @@ class ConversationService:
         self,
         conversation_id: uuid.UUID,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
     ) -> Conversation:
-        conversation = await self._session.get(Conversation, conversation_id)
-        if (
-            conversation is None
-            or conversation.knowledge_base_id != knowledge_base_id
-        ):
+        result = await self._session.execute(
+            select(Conversation)
+            .join(KnowledgeBase)
+            .where(
+                Conversation.id == conversation_id,
+                Conversation.knowledge_base_id == knowledge_base_id,
+                KnowledgeBase.user_id == current_user_id,
+            )
+        )
+        conversation = result.scalar_one_or_none()
+        if conversation is None:
             raise ConversationNotFoundError("Conversation not found")
         return conversation
+
+    async def _conversation_belongs_to_user(
+        self,
+        conversation_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> bool:
+        result = await self._session.execute(
+            select(Conversation.id)
+            .join(KnowledgeBase)
+            .where(
+                Conversation.id == conversation_id,
+                KnowledgeBase.user_id == current_user_id,
+            )
+        )
+        return result.scalar_one_or_none() is not None

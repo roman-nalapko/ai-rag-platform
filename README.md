@@ -174,6 +174,7 @@ Replace these links with real captures as the public demo evolves:
 | `GET`  | `/health/ready`                | PostgreSQL and Qdrant readiness                 |
 | `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
 | `POST` | `/users`                       | Create a user account record                    |
+| `POST` | `/auth/demo-token`             | Issue a local demo JWT for an existing user     |
 | `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
 | `GET`  | `/knowledge-bases?user_id=...&limit=50&offset=0` | List one user's knowledge bases |
 | `POST` | `/conversations`               | Start a conversation in a knowledge base        |
@@ -340,14 +341,21 @@ virtual environments, tests, documentation, logs, or local data directories.
 
 ## Quick API examples
 
-Create a user and then a knowledge base:
+Create a user, issue a local demo token, and then create a knowledge base:
 
 ```bash
 curl -X POST http://localhost:8000/users \
   -H "Content-Type: application/json" \
   -d '{"email":"engineer@example.com"}'
 
+curl -X POST http://localhost:8000/auth/demo-token \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"11111111-1111-1111-1111-111111111111"}'
+
+export TOKEN="paste-access-token-here"
+
 curl -X POST http://localhost:8000/knowledge-bases \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "user_id":"11111111-1111-1111-1111-111111111111",
@@ -360,6 +368,7 @@ Upload a document:
 
 ```bash
 curl -X POST http://localhost:8000/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
   -F "knowledge_base_id=22222222-2222-2222-2222-222222222222" \
   -F "file=@examples/sample_document.txt;type=text/plain"
 ```
@@ -368,13 +377,15 @@ The upload returns HTTP `202` with `status: "pending"`. Poll its status before
 searching:
 
 ```bash
-curl http://localhost:8000/documents/DOCUMENT_UUID
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8000/documents/DOCUMENT_UUID
 ```
 
 Search indexed chunks:
 
 ```bash
 curl -X POST http://localhost:8000/search \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -387,6 +398,7 @@ Ask a grounded question:
 
 ```bash
 curl -X POST http://localhost:8000/qa/ask \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -399,6 +411,7 @@ Start a persistent conversation, then pass its ID to QA:
 
 ```bash
 curl -X POST http://localhost:8000/conversations \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -406,6 +419,7 @@ curl -X POST http://localhost:8000/conversations \
   }'
 
 curl -X POST http://localhost:8000/qa/ask \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "knowledge_base_id":"22222222-2222-2222-2222-222222222222",
@@ -425,7 +439,8 @@ failed, and accuracy percentage metrics.
 
 ```bash
 python evaluation/run_eval.py \
-  --knowledge-base-id YOUR_KNOWLEDGE_BASE_UUID
+  --knowledge-base-id YOUR_KNOWLEDGE_BASE_UUID \
+  --access-token "$TOKEN"
 ```
 
 Add cases in `evaluation/test_questions.json`. See
@@ -548,7 +563,7 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 ### V2 — platform capabilities
 
 - [ ] Hybrid dense/sparse retrieval and reranking
-- [ ] Authentication, authorization, and multi-tenancy
+- [x] Demo JWT authentication and user-level tenant checks
 - [ ] Structured SSE events with source metadata and resume support
 - [ ] Retrieval and answer quality evaluations
 - [ ] Pluggable LLM and embedding providers
@@ -560,9 +575,10 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 - Background indexing uses FastAPI `BackgroundTasks` in the API process. Jobs
   are not durable across process crashes; Celery/Redis is planned for V1.
 - Raw uploads use local filesystem storage and are not shared across replicas.
-- The API has no authentication and is intended for local development.
-- Requests identify the target knowledge base explicitly until authenticated
-  tenant context is introduced.
+- Authentication is local demo JWT only; production password login, refresh
+  tokens, OAuth, and organization roles are future work.
+- Requests still identify the target knowledge base explicitly, but services
+  verify that it belongs to the authenticated user.
 - Answer quality depends on the selected local models and indexed documents.
 
 ## License

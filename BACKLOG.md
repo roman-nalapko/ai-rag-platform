@@ -257,7 +257,7 @@ Out of scope:
 
 ### [P1] Add JWT authentication
 
-Status: Backlog  
+Status: Done  
 Area: api / security
 
 Problem:
@@ -266,14 +266,15 @@ Problem:
 
 Scope:
 
-- Add registration/login or local demo auth.
-- Scope user actions through authenticated identity instead of explicit user IDs.
+- Add local demo JWT token issuance for existing users.
+- Scope user actions through authenticated identity instead of trusting explicit
+  user IDs alone.
 
 Acceptance criteria:
 
-- [ ] Protected endpoints require a valid token.
-- [ ] Users can only access their own knowledge bases.
-- [ ] Tests cover authorization boundaries.
+- [x] Protected endpoints require a valid token.
+- [x] Users can only access their own knowledge bases.
+- [x] Tests cover authorization boundaries.
 
 Out of scope:
 
@@ -281,7 +282,7 @@ Out of scope:
 
 ### [P1] Add tenant isolation checks across all data access
 
-Status: Backlog  
+Status: Done  
 Area: services / db
 
 Problem:
@@ -292,13 +293,15 @@ Problem:
 Scope:
 
 - Review every read/write path for tenant isolation.
-- Add tests for cross-tenant access denial.
+- Enforce owner checks for knowledge bases, documents, conversations, Search,
+  and QA.
+- Add tests for authorization boundaries.
 
 Acceptance criteria:
 
-- [ ] Cross-tenant document access is denied.
-- [ ] Cross-tenant conversation access is denied.
-- [ ] Cross-tenant search/QA remains filtered.
+- [x] Cross-tenant document access is denied.
+- [x] Cross-tenant conversation access is denied.
+- [x] Cross-tenant search/QA remains filtered.
 
 Out of scope:
 

@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.search import SearchRequest, SearchResponse, SearchResultResponse
 from app.services.search import (
     SearchKnowledgeBaseNotFoundError,
@@ -19,6 +21,7 @@ router = APIRouter(tags=["Search"])
 async def semantic_search(
     request: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> SearchResponse:
     service = get_search_service(session)
     try:
@@ -26,6 +29,7 @@ async def semantic_search(
             request.query,
             request.limit,
             request.knowledge_base_id,
+            current_user.id,
         )
     except SearchKnowledgeBaseNotFoundError as error:
         raise HTTPException(

@@ -59,9 +59,10 @@ class SearchService:
         query: str,
         limit: int,
         knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
     ) -> list[SearchMatch]:
         knowledge_base = await self._session.get(KnowledgeBase, knowledge_base_id)
-        if knowledge_base is None:
+        if knowledge_base is None or knowledge_base.user_id != current_user_id:
             raise SearchKnowledgeBaseNotFoundError("Knowledge base not found")
 
         # Do not hold a PostgreSQL transaction while waiting for local model
