@@ -435,7 +435,7 @@ Out of scope:
 
 ### [P3] Add minimal web demo UI
 
-Status: Backlog  
+Status: Done  
 Area: frontend / demo
 
 Problem:
@@ -444,12 +444,13 @@ Problem:
 
 Scope:
 
-- Add a minimal chat/upload UI that consumes the existing API.
+- Add a minimal static chat/upload UI mounted at `/demo`.
+- Keep UI assets under `app/web` and consume existing API endpoints only.
 
 Acceptance criteria:
 
-- [ ] Upload, indexing status, search, QA, and streaming chat are visible.
-- [ ] UI remains separate from backend logic.
+- [x] Upload, indexing status, search, QA, and streaming chat are visible.
+- [x] UI remains separate from backend logic.
 
 Out of scope:
 

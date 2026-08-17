@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
 from app.api.conversations import router as conversations_router
@@ -52,6 +53,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(RequestLoggingMiddleware)
+app.mount("/demo", StaticFiles(directory="app/web", html=True), name="demo")
 
 
 app.include_router(health_router)

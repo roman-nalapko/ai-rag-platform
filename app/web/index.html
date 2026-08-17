@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI RAG Platform Demo</title>
+    <link rel="stylesheet" href="/demo/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Local-first RAG demo</p>
+        <h1>AI RAG Platform</h1>
+        <p>
+          Create a demo user, issue a local JWT, upload a TXT/PDF document,
+          watch indexing status, search chunks, and ask grounded questions.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>1. Demo identity</h2>
+          <label>
+            Email
+            <input id="email" type="email" value="portfolio-demo@example.com" />
+          </label>
+          <button id="create-user">Create user + token</button>
+          <div class="kv">
+            <span>User ID</span>
+            <code id="user-id">not created</code>
+          </div>
+          <div class="kv">
+            <span>Token</span>
+            <code id="token-status">missing</code>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>2. Knowledge base</h2>
+          <label>
+            Name
+            <input id="kb-name" value="AI RAG Platform Demo" />
+          </label>
+          <button id="create-kb">Create knowledge base</button>
+          <div class="kv">
+            <span>Knowledge Base ID</span>
+            <code id="knowledge-base-id">not created</code>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>3. Upload document</h2>
+          <label>
+            PDF or TXT
+            <input id="document-file" type="file" accept=".txt,.pdf" />
+          </label>
+          <button id="upload-document">Upload</button>
+          <button id="poll-document" class="secondary">Poll status</button>
+          <div class="kv">
+            <span>Document ID</span>
+            <code id="document-id">not uploaded</code>
+          </div>
+          <div class="kv">
+            <span>Status</span>
+            <code id="document-status">unknown</code>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>4. Semantic search</h2>
+          <label>
+            Query
+            <input id="search-query" value="Which databases does the platform use?" />
+          </label>
+          <button id="run-search">Search</button>
+          <div id="search-results" class="results"></div>
+        </article>
+
+        <article class="card wide">
+          <h2>5. RAG chat</h2>
+          <label>
+            Question
+            <textarea id="question">What dependencies does the project use?</textarea>
+          </label>
+          <div class="actions">
+            <button id="ask-question">Ask</button>
+            <button id="stream-question" class="secondary">Stream answer</button>
+          </div>
+          <div id="answer" class="answer"></div>
+          <h3>Sources</h3>
+          <div id="sources" class="results"></div>
+        </article>
+
+        <article class="card wide">
+          <h2>Event log</h2>
+          <pre id="log"></pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="/demo/app.js"></script>
+  </body>
+</html>

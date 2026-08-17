@@ -26,6 +26,12 @@ runs semantic search, and asks a grounded RAG question. It prints the created `u
 
 Use the manual steps below when you want to inspect each API request.
 
+## Browser demo UI
+
+Open [http://localhost:8000/demo/](http://localhost:8000/demo/) to run the same
+flow visually: create a user/token, create a knowledge base, upload a document,
+poll indexing status, search, ask QA, and stream an answer.
+
 ## 1. Create a user
 
 ```bash

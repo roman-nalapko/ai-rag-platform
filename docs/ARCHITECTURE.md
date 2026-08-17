@@ -72,6 +72,12 @@ Routes delegate ingestion, search, health checks, and QA orchestration to
 services. They do not call PostgreSQL, Qdrant, or the OpenAI-compatible API
 directly.
 
+### `app/web`
+
+The browser demo UI is a static asset bundle mounted at `/demo`. It contains no
+backend business logic and consumes the same public HTTP APIs documented for
+curl and Bruno demos.
+
 ### `app/services`
 
 The service layer contains application use cases:

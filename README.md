@@ -197,6 +197,10 @@ Replace these links with real captures as the public demo evolves:
 Interactive documentation is available at
 [http://localhost:8000/docs](http://localhost:8000/docs) while the API is
 running. Complete curl requests are in [API Examples](docs/API_EXAMPLES.md).
+A lightweight browser demo is available at
+[http://localhost:8000/demo/](http://localhost:8000/demo/) for user/token
+creation, document upload, indexing status, search, normal QA, and streaming
+QA.
 
 ## Development setup (native API)
 
