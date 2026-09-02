@@ -11,7 +11,12 @@
 
 **Built with:** FastAPI · PostgreSQL · Qdrant · LM Studio · Docker
 
+<p align="center">
+  <img src="docs/screenshots/rag-chat-flow.jpg" alt="AI RAG Platform UI Dashboard" width="100%" />
+</p>
+
 > [!IMPORTANT]
+
 > This repository is a local-first engineering project, not a turnkey public
 > SaaS. The built-in user creation and token issuance flows are intentionally
 > demo-only and do not prove user identity. Keep the service on a trusted local
@@ -213,7 +218,12 @@ creation, document upload, indexing status, search, normal QA, and streaming
 QA. Set `DEMO_MODE_ENABLED=false` before startup to hide the demo UI, account
 creation endpoint, and demo-token endpoint.
 
+<p align="center">
+  <img src="docs/screenshots/api-documentation.jpg" alt="Interactive OpenAPI Documentation" width="100%" />
+</p>
+
 ## Development setup (native API)
+
 
 ### Prerequisites
 
@@ -455,19 +465,25 @@ When `conversation_id` is omitted, `/qa/ask` remains stateless.
 
 ## RAG Evaluation
 
-The repository includes a fully local keyword-based RAG evaluation pipeline.
-It calls `/qa/ask`, checks expected facts in each answer, and reports passed,
-failed, and accuracy percentage metrics.
+The repository includes a local evaluation pipeline with both keyword-checking and **LLM-as-a-judge** scoring modes.
+It calls `/qa/ask`, evaluates factual correctness and faithfulness against retrieved context, and exports Prometheus-compatible metrics.
 
 ```bash
-python evaluation/run_eval.py \
-  --knowledge-base-id YOUR_KNOWLEDGE_BASE_UUID \
-  --access-token "$TOKEN"
+# Keyword evaluation
+python evaluation/run_eval.py --knowledge-base-id YOUR_KB_UUID --access-token "$TOKEN"
+
+# LLM-as-a-judge evaluation (scoring 0-10)
+python evaluation/run_eval.py --mode llm-judge --knowledge-base-id YOUR_KB_UUID --access-token "$TOKEN"
 ```
 
+<p align="center">
+  <img src="docs/screenshots/evaluation-report.jpg" alt="RAG Evaluation Report & Metrics" width="100%" />
+</p>
+
 Add cases in `evaluation/test_questions.json`. See
-[RAG Evaluation](docs/EVALUATION.md) for dataset guidance, configuration, exit
-codes, and metric limitations.
+[RAG Evaluation](docs/EVALUATION.md) and [Evaluation Guide](evaluation/README.md) for dataset guidance, configuration, exit
+codes, and metric details.
+
 
 ## Observability
 
