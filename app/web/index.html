@@ -3,98 +3,212 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI RAG Platform Demo</title>
+    <title>AI RAG Platform</title>
     <link rel="stylesheet" href="/demo/styles.css" />
   </head>
   <body>
+    <nav class="topbar">
+      <div class="topbar-inner">
+        <span class="topbar-logo">⚡ AI RAG Platform</span>
+        <div class="topbar-right">
+          <span id="session-badge" class="session-badge hidden"></span>
+          <button id="theme-toggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+          <button id="logout-btn" class="secondary small-btn hidden">Sign out</button>
+        </div>
+      </div>
+    </nav>
+
     <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">Local-first RAG demo</p>
-        <h1>AI RAG Platform</h1>
-        <p>
-          Create a demo user, issue a local JWT, upload a TXT/PDF document,
-          watch indexing status, search chunks, and ask grounded questions.
-        </p>
+      <!-- Auth gate — shown when not logged in -->
+      <section id="auth-gate" class="auth-gate">
+        <div class="auth-card">
+          <div class="auth-hero">
+            <p class="eyebrow">Production Local-First RAG Platform</p>
+            <h1>AI RAG Platform</h1>
+            <p>FastAPI · PostgreSQL 17 · Qdrant · LM Studio · Streaming Chat</p>
+          </div>
+
+          <div class="auth-tabs">
+            <button id="tab-login" class="tab-btn active">Sign In</button>
+            <button id="tab-register" class="tab-btn">Create Account</button>
+          </div>
+
+          <!-- Login form -->
+          <form id="form-login" class="auth-form">
+            <label>
+              Email
+              <input id="login-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </label>
+            <label>
+              Password
+              <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+            </label>
+            <button type="submit" id="btn-login">Sign In</button>
+            <p id="login-error" class="form-error hidden"></p>
+          </form>
+
+          <!-- Register form (hidden by default) -->
+          <form id="form-register" class="auth-form hidden">
+            <label>
+              Email
+              <input id="reg-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </label>
+            <label>
+              Password <span class="muted-hint">(min 8 chars)</span>
+              <input id="reg-password" type="password" autocomplete="new-password" placeholder="••••••••" minlength="8" required />
+            </label>
+            <button type="submit" id="btn-register">Create Account &amp; Sign In</button>
+            <p id="register-error" class="form-error hidden"></p>
+          </form>
+
+          <p class="auth-demo-hint">
+            <strong>Demo mode:</strong> You can also use the legacy
+            <code>POST /auth/demo-token</code> endpoint via the Swagger UI at
+            <a href="/docs" target="_blank">/docs</a>.
+          </p>
+        </div>
       </section>
 
-      <section class="grid">
-        <article class="card">
-          <h2>1. Demo identity</h2>
-          <label>
-            Email
-            <input id="email" type="email" value="portfolio-demo@example.com" />
-          </label>
-          <button id="create-user">Create user + token</button>
-          <div class="kv">
-            <span>User ID</span>
-            <code id="user-id">not created</code>
-          </div>
-          <div class="kv">
-            <span>Token</span>
-            <code id="token-status">missing</code>
-          </div>
-        </article>
+      <!-- Main app — shown when logged in -->
+      <section id="app" class="hidden">
+        <section class="hero">
+          <p class="eyebrow">Production Local-First RAG Platform</p>
+          <h1>AI RAG Platform</h1>
+          <p>
+            FastAPI · PostgreSQL 17 · Qdrant Vector DB · LM Studio · Asynchronous Ingestion &amp; Grounded Chat
+          </p>
+        </section>
 
-        <article class="card">
-          <h2>2. Knowledge base</h2>
-          <label>
-            Name
-            <input id="kb-name" value="AI RAG Platform Demo" />
-          </label>
-          <button id="create-kb">Create knowledge base</button>
-          <div class="kv">
-            <span>Knowledge Base ID</span>
-            <code id="knowledge-base-id">not created</code>
-          </div>
-        </article>
+        <section class="grid">
+          <!-- 1. Knowledge Base Management -->
+          <article class="card">
+            <h2>1. Knowledge Base</h2>
+            <label>
+              Select Existing Knowledge Base
+              <select id="kb-select" disabled>
+                <option value="">-- Loading... --</option>
+              </select>
+            </label>
+            <div class="kb-create-form">
+              <label>
+                Or Create New
+                <input id="kb-name" placeholder="e.g. AI Documentation" value="AI RAG Platform Demo" />
+              </label>
+              <div class="actions">
+                <button id="create-kb">Create KB</button>
+                <button id="refresh-kbs" class="secondary">Refresh List</button>
+              </div>
+            </div>
+            <div class="kv">
+              <span>Active KB ID</span>
+              <code id="knowledge-base-id">not selected</code>
+            </div>
+          </article>
 
-        <article class="card">
-          <h2>3. Upload document</h2>
-          <label>
-            PDF or TXT
-            <input id="document-file" type="file" accept=".txt,.pdf" />
-          </label>
-          <button id="upload-document">Upload</button>
-          <button id="poll-document" class="secondary">Poll status</button>
-          <div class="kv">
-            <span>Document ID</span>
-            <code id="document-id">not uploaded</code>
-          </div>
-          <div class="kv">
-            <span>Status</span>
-            <code id="document-status">unknown</code>
-          </div>
-        </article>
+          <!-- 2. Conversations -->
+          <article class="card">
+            <h2>2. Conversation Session</h2>
+            <label>
+              Active Conversation
+              <select id="conv-select" disabled>
+                <option value="">-- Stateless QA (no history) --</option>
+              </select>
+            </label>
+            <div class="actions">
+              <button id="create-conv" class="secondary">New Conversation</button>
+              <button id="refresh-convs" class="secondary">Refresh</button>
+            </div>
+            <div class="kv">
+              <span>Conv ID</span>
+              <code id="conversation-id">stateless</code>
+            </div>
+          </article>
 
-        <article class="card">
-          <h2>4. Semantic search</h2>
-          <label>
-            Query
-            <input id="search-query" value="Which databases does the platform use?" />
-          </label>
-          <button id="run-search">Search</button>
-          <div id="search-results" class="results"></div>
-        </article>
+          <!-- 3. Document Ingestion & Management -->
+          <article class="card wide">
+            <div class="card-header">
+              <h2>3. Document Ingestion &amp; Management</h2>
+              <button id="refresh-docs" class="secondary small-btn">Refresh Documents</button>
+            </div>
+            <div class="upload-row">
+              <label class="file-label">
+                Upload PDF or TXT
+                <input id="document-file" type="file" accept=".txt,.pdf" />
+              </label>
+              <button id="upload-document">
+                <span id="upload-spinner" class="spinner hidden"></span>
+                Upload &amp; Index
+              </button>
+            </div>
+            <h3>Documents in Active Knowledge Base</h3>
+            <div id="document-list" class="doc-list-container">
+              <p class="empty-state">Select or create a knowledge base to view documents.</p>
+            </div>
+          </article>
 
-        <article class="card wide">
-          <h2>5. RAG chat</h2>
-          <label>
-            Question
-            <textarea id="question">What dependencies does the project use?</textarea>
-          </label>
-          <div class="actions">
-            <button id="ask-question">Ask</button>
-            <button id="stream-question" class="secondary">Stream answer</button>
-          </div>
-          <div id="answer" class="answer"></div>
-          <h3>Sources</h3>
-          <div id="sources" class="results"></div>
-        </article>
+          <!-- 4. Semantic & Hybrid Vector Search -->
+          <article class="card">
+            <h2>4. Search (Dense &amp; Hybrid RRF)</h2>
+            <label>
+              Search Query
+              <input id="search-query" value="Which databases does the platform use?" />
+            </label>
+            <div class="checkbox-row">
+              <label class="inline-checkbox">
+                <input id="search-hybrid" type="checkbox" /> Hybrid Search (Vectors + PostgreSQL FTS via RRF)
+              </label>
+            </div>
+            <div class="actions">
+              <button id="run-search">
+                <span id="search-spinner" class="spinner hidden"></span>
+                Run Search
+              </button>
+            </div>
+            <div id="search-results" class="results"></div>
+          </article>
 
-        <article class="card wide">
-          <h2>Event log</h2>
-          <pre id="log"></pre>
-        </article>
+          <!-- 5. Grounded QA & Streaming -->
+          <article class="card wide">
+            <h2>5. Grounded RAG Question Answering</h2>
+            <label>
+              Question
+              <textarea id="question">What dependencies does the project use?</textarea>
+            </label>
+            <div class="checkbox-row">
+              <label class="inline-checkbox">
+                <input id="qa-hybrid" type="checkbox" /> Hybrid Retrieval (Vectors + FTS via RRF)
+              </label>
+            </div>
+            <div class="actions">
+              <button id="ask-question">
+                <span id="ask-spinner" class="spinner hidden"></span>
+                Ask Question
+              </button>
+              <button id="stream-question" class="secondary">
+                <span id="stream-spinner" class="spinner hidden"></span>
+                Stream Answer (SSE)
+              </button>
+            </div>
+
+            <h3>AI Answer</h3>
+            <div id="answer" class="answer"></div>
+
+            <h3>Retrieved Source Chunks</h3>
+            <div id="sources" class="results"></div>
+          </article>
+
+          <!-- 6. Observability Event Log -->
+          <article class="card wide">
+            <div class="card-header">
+              <h2>Observability &amp; Event Log</h2>
+              <div class="actions">
+                <button id="copy-log" class="secondary small-btn">Copy Log</button>
+                <button id="clear-log" class="secondary small-btn">Clear Log</button>
+              </div>
+            </div>
+            <pre id="log"></pre>
+          </article>
+        </section>
       </section>
     </main>
 

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +13,8 @@ class ReadinessCheckError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class ReadinessResult:
-    status: str
-    checks: dict[str, str]
+    status: Literal["ready"]
+    checks: dict[Literal["database", "qdrant"], Literal["ok"]]
 
 
 class ReadinessService:
@@ -26,7 +27,7 @@ class ReadinessService:
         self._vector_store = vector_store
 
     async def check(self) -> ReadinessResult:
-        checks: dict[str, str] = {}
+        checks: dict[Literal["database", "qdrant"], Literal["ok"]] = {}
         await self._check_database()
         checks["database"] = "ok"
 

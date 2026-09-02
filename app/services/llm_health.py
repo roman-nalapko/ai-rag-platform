@@ -1,12 +1,13 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from app.llm.lm_studio_client import LMStudioClient
 
 
 @dataclass(frozen=True, slots=True)
 class LLMHealthResult:
-    status: str
-    provider: str
+    status: Literal["ok"]
+    provider: Literal["lm-studio"]
     embedding_dimensions: int
 
 

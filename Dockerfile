@@ -7,8 +7,8 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY requirements.lock .
+RUN pip install --upgrade pip && pip install -r requirements.lock
 
 
 FROM python:3.14-slim AS runtime

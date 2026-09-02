@@ -4,7 +4,8 @@
 
 GitHub Actions runs `.github/workflows/ci.yml` for every push and pull request.
 The workflow uses an Ubuntu GitHub-hosted runner, checks out the repository,
-installs Python 3.14, caches pip downloads, and installs `requirements.txt`.
+installs Python 3.14, caches pip downloads, and installs the reproducible
+`requirements.lock` environment.
 
 The workflow grants the GitHub token only read access to repository contents.
 Concurrent runs for the same branch or pull request are cancelled when a newer
@@ -12,26 +13,30 @@ commit arrives.
 
 ## Tests
 
-The CI job runs:
+The CI job runs on GitHub Actions with ephemeral PostgreSQL 17 and Qdrant
+service containers. It applies database migrations and runs both fast API contract
+tests and database/vector-store integration tests:
 
 ```bash
-pytest
+alembic upgrade head
+RUN_INTEGRATION_TESTS=1 pytest -v
 ```
 
-The default suite uses HTTPX's in-process ASGI transport and fake database
-dependency, so CI does not start PostgreSQL, Qdrant, or LM Studio. Placeholder
-environment values satisfy application configuration but are never contacted
-by these tests.
+The fast suite uses HTTPX's in-process ASGI transport, while the integration
+suite exercises real PostgreSQL migrations, multi-tenant persistence, and Qdrant
+point payload filtering against the live service containers.
 
-Infrastructure-backed tests are marked `integration` and run locally with:
+Before linting and tests, `pip-audit` checks the locked dependency set against
+the Python Packaging Advisory Database, Bandit scans application code for
+common security mistakes, and mypy checks application type contracts.
+
+You can run the full suite locally with:
 
 ```bash
 make test-integration
 ```
 
-They are not part of the default CI job because they require PostgreSQL and
-Qdrant services. See [Testing](TESTING.md) for current coverage and integration
-test boundaries.
+See [Testing](TESTING.md) for current coverage and integration test boundaries.
 
 ## Lint
 
@@ -74,10 +79,15 @@ From the repository root:
 
 ```bash
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.lock
+pip install bandit==1.9.4 mypy==1.18.2 pip-audit==2.10.1
+pip-audit -r requirements.lock
+bandit -r app -q
+mypy app --ignore-missing-imports
 ruff check .
+ruff format --check .
 pytest
 docker build --tag ai-rag-platform:ci .
 ```
 
-All four commands must pass before the GitHub Actions job becomes green.
+All commands must pass before the GitHub Actions job becomes green.

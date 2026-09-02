@@ -139,6 +139,50 @@ class DocumentService:
             chunks_count=int(chunks_count or 0),
         )
 
+    async def list_for_knowledge_base(
+        self,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[DocumentResult]:
+        knowledge_base = await self._session.get(KnowledgeBase, knowledge_base_id)
+        if knowledge_base is None or knowledge_base.user_id != current_user_id:
+            raise KnowledgeBaseNotFoundError("Knowledge base not found")
+
+        chunk_counts_subquery = (
+            select(
+                DocumentChunk.document_id,
+                func.count(DocumentChunk.id).label("chunks_count"),
+            )
+            .group_by(DocumentChunk.document_id)
+            .subquery()
+        )
+
+        result = await self._session.execute(
+            select(
+                Document,
+                func.coalesce(chunk_counts_subquery.c.chunks_count, 0).label(
+                    "chunks_count"
+                ),
+            )
+            .outerjoin(
+                chunk_counts_subquery,
+                Document.id == chunk_counts_subquery.c.document_id,
+            )
+            .where(Document.knowledge_base_id == knowledge_base_id)
+            .order_by(Document.created_at.desc(), Document.id)
+            .limit(limit)
+            .offset(offset)
+        )
+        return [
+            DocumentResult(
+                document=row[0],
+                chunks_count=int(row[1]),
+            )
+            for row in result.all()
+        ]
+
     async def delete(self, document_id: uuid.UUID, current_user_id: uuid.UUID) -> None:
         document = await self._session.get(Document, document_id)
         if document is None or not await self._document_belongs_to_user(
@@ -178,9 +222,12 @@ class DocumentService:
             current_user_id,
         ):
             raise DocumentNotFoundError("Document not found")
-        if document.status == DocumentStatus.PROCESSING.value:
+        if document.status in {
+            DocumentStatus.PENDING.value,
+            DocumentStatus.PROCESSING.value,
+        }:
             raise DocumentAlreadyProcessingError(
-                "Document is currently being processed"
+                "Document is already queued or being processed"
             )
 
         try:
@@ -230,9 +277,7 @@ class DocumentService:
             )
             chunk_contents = self._chunking_service.split(text)
             if not chunk_contents:
-                raise DocumentExtractionError(
-                    "Document contains no extractable text"
-                )
+                raise DocumentExtractionError("Document contains no extractable text")
             chunks_count = len(chunk_contents)
 
             chunks = [

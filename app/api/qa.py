@@ -1,5 +1,6 @@
+import json
 from collections.abc import AsyncIterator
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -20,10 +21,14 @@ from app.services.qa import (
 router = APIRouter(prefix="/qa", tags=["Question Answering"])
 
 
-def _format_sse(token: str) -> str:
-    normalized = token.replace("\r\n", "\n").replace("\r", "\n")
-    payload = normalized.replace("\n", "\ndata: ")
-    return f"data: {payload}\n\n"
+def _format_typed_sse(event_type: str, data: Any) -> str:
+    if isinstance(data, (dict, list)):
+        payload = json.dumps(data, ensure_ascii=False)
+    else:
+        payload = str(data)
+    normalized = payload.replace("\r\n", "\n").replace("\r", "\n")
+    formatted_data = normalized.replace("\n", "\ndata: ")
+    return f"event: {event_type}\ndata: {formatted_data}\n\n"
 
 
 @router.post("/ask", response_model=QAResponse)
@@ -40,6 +45,7 @@ async def ask_question(
             request.knowledge_base_id,
             current_user.id,
             request.conversation_id,
+            hybrid=request.hybrid,
         )
     except (QAKnowledgeBaseNotFoundError, QAConversationNotFoundError) as error:
         raise HTTPException(
@@ -86,12 +92,13 @@ async def stream_answer(
 ) -> StreamingResponse:
     service = get_qa_service(session)
     try:
-        token_stream = await service.stream_answer(
+        events = await service.stream_events(
             request.question,
             request.limit,
             request.knowledge_base_id,
             current_user.id,
             request.conversation_id,
+            hybrid=request.hybrid,
         )
     except (QAKnowledgeBaseNotFoundError, QAConversationNotFoundError) as error:
         raise HTTPException(
@@ -110,8 +117,8 @@ async def stream_answer(
         ) from error
 
     async def event_stream() -> AsyncIterator[str]:
-        async for token in token_stream:
-            yield _format_sse(token)
+        async for event in events:
+            yield _format_typed_sse(event.event, event.data)
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(

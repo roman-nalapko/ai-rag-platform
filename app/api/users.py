@@ -3,11 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import require_demo_mode
 from app.db.session import get_db
 from app.schemas.user import UserCreate, UserResponse
 from app.services.user import UserAlreadyExistsError, UserService
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"],
+    dependencies=[Depends(require_demo_mode)],
+)
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

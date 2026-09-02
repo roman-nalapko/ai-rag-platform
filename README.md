@@ -1,23 +1,34 @@
 # AI RAG Platform
 
 [![CI](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/roman-nalapko/ai-rag-platform/actions/workflows/ci.yml)
+[![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.125+-009688.svg)](https://fastapi.tiangolo.com)
+[![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791.svg)](https://www.postgresql.org)
+[![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-dc2626.svg)](https://qdrant.tech)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Production-ready local-first RAG platform for building private AI assistants
-over documents.**
+**Local-first RAG platform for building private AI assistants over documents.**
 
 **Built with:** FastAPI · PostgreSQL · Qdrant · LM Studio · Docker
 
+> [!IMPORTANT]
+> This repository is a local-first engineering project, not a turnkey public
+> SaaS. The built-in user creation and token issuance flows are intentionally
+> demo-only and do not prove user identity. Keep the service on a trusted local
+> network, or set `DEMO_MODE_ENABLED=false` and add production authentication
+> before exposing it publicly. See [Deployment](docs/DEPLOYMENT.md).
+
 ## Features
 
-- Async document ingestion pipeline
-- PDF/TXT processing
-- Vector search
-- Multi-tenant knowledge bases
-- Conversation memory
-- Streaming AI responses
-- RAG evaluation
-- Structured observability
-- CI/CD pipeline
+- Async document ingestion pipeline with batch embeddings
+- Hybrid retrieval (Qdrant Dense Vectors + PostgreSQL Full-Text Search) with Reciprocal Rank Fusion (RRF)
+- Unicode-aware multilingual reranker
+- Multi-tenant knowledge bases and scoped tenant isolation
+- Multi-turn conversation memory
+- Structured SSE streaming with real-time source citations
+- Built-in Prometheus metrics exporter (`/metrics`)
+- Offline RAG quality evaluation
+- CI/CD pipeline with live PostgreSQL 17 and Qdrant service containers
 
 ## Architecture preview
 
@@ -26,15 +37,15 @@ Document
    ↓
 Chunking
    ↓
-Embeddings
+Embeddings (Batch)
    ↓
-Qdrant
+Hybrid Retrieval (Qdrant Vectors + PostgreSQL FTS via RRF)
    ↓
-Retriever
+Context + Prompt
    ↓
-LLM
+Multi-Provider LLM
    ↓
-Answer + Sources
+Streaming Answer + Citations
 ```
 
 ## Why this project exists
@@ -43,11 +54,12 @@ This project demonstrates production AI engineering patterns: clean
 architecture, async processing, vector databases, LLM abstraction, evaluation
 and deployment workflows.
 
-**Portfolio links:** [guided demo](docs/DEMO_FLOW.md) ·
+**Project links:** [guided demo](docs/DEMO_FLOW.md) ·
 [architecture](docs/ARCHITECTURE.md) · [interview topics](docs/INTERVIEW.md) ·
 [resume bullets](docs/RESUME.md) · [API examples](docs/API_EXAMPLES.md) ·
 [API collection](docs/api-collection/README.md) ·
-[deployment](docs/DEPLOYMENT.md) · [backlog](BACKLOG.md)
+[deployment](docs/DEPLOYMENT.md) · [changelog](CHANGELOG.md) ·
+[contributing](CONTRIBUTING.md) · [security](SECURITY.md) · [backlog](BACKLOG.md)
 
 ## Quick start
 
@@ -58,6 +70,7 @@ network access, then:
 ```bash
 cp .env.example .env
 # Set the exact LM_STUDIO_CHAT_MODEL and LM_STUDIO_EMBEDDING_MODEL IDs in .env
+# Replace JWT_SECRET_KEY with a random value of at least 32 characters.
 
 docker compose up -d postgres qdrant
 docker compose build api
@@ -128,15 +141,6 @@ cases. Provider-specific LM Studio and Qdrant operations remain isolated in
 `llm/` and `rag/`. See [Architecture](docs/ARCHITECTURE.md) for the detailed
 module and data-flow description.
 
-## Screenshots
-
-Replace these links with real captures as the public demo evolves:
-
-- [API Documentation (FastAPI Swagger)](docs/screenshots/api-documentation.png)
-- [Qdrant Vector Dashboard](docs/screenshots/qdrant-vector-dashboard.png)
-- [RAG Chat Flow](docs/screenshots/rag-chat-flow.png)
-- [Evaluation Report](docs/screenshots/evaluation-report.png)
-
 ## Tech stack
 
 | Area                | Technology                                                   |
@@ -154,8 +158,8 @@ Replace these links with real captures as the public demo evolves:
 - **RAG ingestion:** PDF/TXT extraction, overlapping chunks, durable
   PostgreSQL-backed jobs, local embeddings, dynamic Qdrant collections,
   embedding model metadata, and observable processing states.
-- **Upload safety:** configurable raw document size limits and strict PDF/TXT
-  MIME validation before indexing starts.
+- **Upload safety:** configurable raw document size limits plus matching PDF/TXT
+  filename-extension and declared-content-type validation before indexing.
 - **Scoped retrieval:** top-K cosine search with mandatory knowledge-base
   payload filters, optional local reranking, scores, and complete source
   metadata.
@@ -181,13 +185,18 @@ Replace these links with real captures as the public demo evolves:
 | `GET`  | `/health`                      | API process health                              |
 | `GET`  | `/health/ready`                | PostgreSQL and Qdrant readiness                 |
 | `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
+| `GET`  | `/metrics`                     | Prometheus metrics exporter                     |
 | `POST` | `/users`                       | Create a user account record                    |
 | `POST` | `/auth/demo-token`             | Issue a local demo JWT for an existing user     |
 | `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
 | `GET`  | `/knowledge-bases?user_id=...&limit=50&offset=0` | List one user's knowledge bases |
+| `GET`  | `/knowledge-bases/{id}`        | Get knowledge base details                      |
+| `DELETE` | `/knowledge-bases/{id}`      | Delete knowledge base, documents, and vectors   |
 | `POST` | `/conversations`               | Start a conversation in a knowledge base        |
+| `GET`  | `/conversations?knowledge_base_id=...&limit=50&offset=0` | List conversations in a knowledge base |
 | `GET`  | `/conversations/{id}/messages` | Read a conversation's chat history              |
 | `POST` | `/documents/upload`            | Store a PDF/TXT file and enqueue indexing       |
+| `GET`  | `/documents?knowledge_base_id=...&limit=50&offset=0` | List documents in a knowledge base |
 | `GET`  | `/documents/{id}`              | Read processing status, chunk count, and errors |
 | `POST` | `/documents/{id}/reindex`      | Clear chunks/vectors and enqueue re-indexing    |
 | `DELETE` | `/documents/{id}`            | Delete metadata, chunks, vectors, and raw file  |
@@ -201,7 +210,8 @@ running. Complete curl requests are in [API Examples](docs/API_EXAMPLES.md).
 A lightweight browser demo is available at
 [http://localhost:8000/demo/](http://localhost:8000/demo/) for user/token
 creation, document upload, indexing status, search, normal QA, and streaming
-QA.
+QA. Set `DEMO_MODE_ENABLED=false` before startup to hide the demo UI, account
+creation endpoint, and demo-token endpoint.
 
 ## Development setup (native API)
 
@@ -219,7 +229,7 @@ From the repository root:
 cp .env.example .env
 python3.14 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.lock
 ```
 
 ### 2. Start PostgreSQL and Qdrant
@@ -480,15 +490,18 @@ privacy rules, and local `jq` command.
 
 ## Testing
 
-The default pytest suite exercises health, request correlation, and API request
-validation without connecting to PostgreSQL, Qdrant, or LM Studio.
+The default pytest suite exercises health, request correlation, authentication,
+tenant isolation, API contracts, orchestration, streaming, and metrics without
+connecting to PostgreSQL, Qdrant, or LM Studio.
 
 ```bash
 pytest
 ```
 
 See [Testing](docs/TESTING.md) for focused commands, current coverage, dependency
-overrides, and the infrastructure required by future integration tests.
+overrides, and the infrastructure required by integration tests. The script
+`scripts/verify_rag_e2e.py` is a deterministic simulation; use
+`scripts/run_demo.py` against live services for an actual end-to-end flow.
 
 ## Code quality
 
@@ -499,10 +512,11 @@ bug patterns, modernization opportunities, and async mistakes.
 ruff check .
 ```
 
-GitHub Actions runs Ruff, pytest, and a production Docker build on every push
-and pull request. The badge at the top of this README links directly to the
-repository workflow. See [Continuous Integration](docs/CI.md) for pipeline
-details and local reproduction commands.
+GitHub Actions runs a dependency audit, Ruff, pytest with live PostgreSQL and
+Qdrant integration tests, and a production Docker build on every push and pull
+request. The badge at the top of this README links directly to the repository
+workflow. See [Continuous Integration](docs/CI.md) for pipeline details and
+local reproduction commands.
 
 ## Repository structure
 
@@ -566,19 +580,23 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 
 ### V1 — production hardening
 
-- [ ] Infrastructure-backed integration tests in CI
+- [x] Infrastructure-backed integration tests in CI
 - [ ] Durable Celery/Redis ingestion queue and upload-size limits
-- [ ] Document listing, retry, and deletion APIs
-- [ ] Metrics, distributed tracing, dashboards, alerts, and retry policies
+- [x] Document listing, retry, and deletion APIs
+- [x] Knowledge base retrieval and cascading deletion APIs
+- [x] Conversation listing and multi-turn session persistence
+- [x] Prometheus metrics exporter and request correlation
 - [ ] Embedding task prefixes and stale-vector detection after model changes
 
 ### V2 — platform capabilities
 
-- [ ] Hybrid dense/sparse retrieval and reranking
+- [x] Hybrid retrieval (dense vectors + sparse text) and Reciprocal Rank Fusion (RRF)
 - [x] Demo JWT authentication and user-level tenant checks
-- [ ] Structured SSE events with source metadata and resume support
+- [x] Multilingual Unicode-aware tokenization
+- [x] Batch chunk embedding optimization
+- [x] Structured SSE events with source citations
 - [ ] Retrieval and answer quality evaluations
-- [ ] Pluggable LLM and embedding providers
+- [x] Pluggable LLM and embedding providers (OpenAI-compatible)
 - [ ] Deployment profiles for local, staging, and production environments
 
 ## Current limitations

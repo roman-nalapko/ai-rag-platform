@@ -9,6 +9,7 @@ class SearchRequest(BaseModel):
     knowledge_base_id: uuid.UUID
     query: str = Field(min_length=1, max_length=4096)
     limit: int = Field(default=5, ge=1, le=50)
+    hybrid: bool = False
 
     @field_validator("query")
     @classmethod

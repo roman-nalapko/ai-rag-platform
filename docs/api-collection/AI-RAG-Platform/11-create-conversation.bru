@@ -1,0 +1,23 @@
+meta {
+  name: 11 Create Conversation
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{base_url}}/conversations
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "knowledge_base_id": "{{knowledge_base_id}}",
+    "title": "Architecture and Stack Review"
+  }
+}

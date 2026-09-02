@@ -300,7 +300,11 @@ def run_demo(config: DemoConfig) -> None:
         print("\n3. Create demo JWT")
         token = create_demo_token(client, user_id)
         access_token = str(token["access_token"])
-        print(pretty({"token_type": token["token_type"], "expires_in": token["expires_in"]}))
+        print(
+            pretty(
+                {"token_type": token["token_type"], "expires_in": token["expires_in"]}
+            )
+        )
 
         print("\n4. Create knowledge base")
         knowledge_base = create_knowledge_base(client, user_id, access_token)

@@ -11,7 +11,6 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-
 DEFAULT_QUESTIONS_PATH = Path(__file__).with_name("test_questions.json")
 PLACEHOLDER_KNOWLEDGE_BASE_ID = "optional-placeholder"
 
@@ -350,7 +349,13 @@ def print_report(results: list[EvaluationResult], api_url: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate the local RAG QA endpoint using keyword checks."
+        description=(
+            "Evaluate the local RAG QA endpoint.\n\n"
+            "Modes:\n"
+            "  keyword   (default) Check that expected keywords appear in the answer.\n"
+            "  llm-judge Send each answer to the LLM and ask it to score faithfulness 0-10."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--questions",
@@ -373,9 +378,147 @@ def parse_args() -> argparse.Namespace:
         default=os.getenv("EVAL_ACCESS_TOKEN"),
         help="Bearer token for protected QA requests.",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["keyword", "llm-judge"],
+        default=os.getenv("EVAL_MODE", "keyword"),
+        help="Evaluation mode: 'keyword' (default) or 'llm-judge'.",
+    )
+    parser.add_argument(
+        "--llm-url",
+        default=os.getenv("EVAL_LLM_URL", "http://localhost:1234/v1"),
+        help="OpenAI-compatible LLM base URL used by llm-judge mode.",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default=os.getenv("EVAL_LLM_MODEL", ""),
+        help="Chat model name for llm-judge mode (passed as model field).",
+    )
+    parser.add_argument(
+        "--llm-min-score",
+        type=float,
+        default=float(os.getenv("EVAL_LLM_MIN_SCORE", "6.0")),
+        help="Minimum LLM judge score (0-10) to consider a case passing (default: 6.0).",
+    )
     parser.add_argument("--limit", type=int, default=5, choices=range(1, 11))
     parser.add_argument("--timeout", type=float, default=300.0)
     return parser.parse_args()
+
+
+
+
+# ── LLM-as-judge ──────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True, slots=True)
+class LLMJudgeResult:
+    question: str
+    answer: str
+    score: float  # 0-10
+    reasoning: str
+    passed: bool
+    error: str | None = None
+
+
+def _llm_chat(
+    llm_url: str,
+    model: str,
+    messages: list[dict[str, str]],
+    timeout: float,
+) -> str:
+    """Call an OpenAI-compatible /chat/completions endpoint. Returns assistant content."""
+    url = llm_url.rstrip("/") + "/chat/completions"
+    body = json.dumps({"model": model or "local-model", "messages": messages, "max_tokens": 256}).encode()
+    req = Request(url, data=body, headers={"Content-Type": "application/json"})
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read())
+    except (HTTPError, URLError) as error:
+        raise LocalAPIError(f"LLM judge request failed: {error}") from error
+    try:
+        return payload["choices"][0]["message"]["content"].strip()
+    except (KeyError, IndexError) as error:
+        raise LocalAPIError("Unexpected LLM judge response format") from error
+
+
+def judge_with_llm(
+    case: EvaluationCase,
+    qa_result: QAResult,
+    llm_url: str,
+    model: str,
+    min_score: float,
+    timeout: float,
+) -> LLMJudgeResult:
+    """Ask the LLM to score faithfulness and relevance of the answer."""
+    sources_text = "\n\n".join(
+        f"[Source {i+1}]: {s.content[:500]}" for i, s in enumerate(qa_result.sources)
+    )
+    prompt = (
+        f"You are an objective RAG evaluator. Given a question, retrieved context, and an answer, "
+        f"score the answer on faithfulness and relevance from 0 to 10.\n\n"
+        f"Question: {case.question}\n\n"
+        f"Retrieved Context:\n{sources_text or '(no sources retrieved)'}\n\n"
+        f"Answer: {qa_result.answer}\n\n"
+        f"Respond with ONLY:\nSCORE: <integer 0-10>\nREASON: <one sentence>"
+    )
+    try:
+        content = _llm_chat(
+            llm_url=llm_url,
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            timeout=timeout,
+        )
+    except LocalAPIError as error:
+        return LLMJudgeResult(
+            question=case.question,
+            answer=qa_result.answer,
+            score=0.0,
+            reasoning="",
+            passed=False,
+            error=str(error),
+        )
+
+    # Parse SCORE: N
+    score = 0.0
+    reasoning = content
+    for line in content.splitlines():
+        if line.upper().startswith("SCORE:"):
+            try:
+                score = float(line.split(":", 1)[1].strip())
+            except ValueError:
+                pass
+        elif line.upper().startswith("REASON:"):
+            reasoning = line.split(":", 1)[1].strip()
+
+    return LLMJudgeResult(
+        question=case.question,
+        answer=qa_result.answer,
+        score=score,
+        reasoning=reasoning,
+        passed=score >= min_score,
+    )
+
+
+def print_llm_judge_report(results: list[LLMJudgeResult], api_url: str, min_score: float) -> None:
+    print("\nRAG LLM-Judge Evaluation Report")
+    print(f"API: {api_url.rstrip('/')}/qa/ask  |  min_score: {min_score}")
+    print("=" * 72)
+    for i, result in enumerate(results, 1):
+        label = "PASS" if result.passed else "FAIL"
+        print(f"[{label}] {i}. {result.question}")
+        print(f"       Score:   {result.score:.1f}/10")
+        if result.reasoning:
+            print(f"       Reason:  {result.reasoning}")
+        if result.error:
+            print(f"       Error:   {result.error}")
+    print("-" * 72)
+    total = len(results)
+    passed = sum(r.passed for r in results)
+    avg_score = sum(r.score for r in results) / total if total else 0.0
+    print(f"total_questions: {total}")
+    print(f"passed:          {passed}")
+    print(f"failed:          {total - passed}")
+    print(f"avg_llm_score:   {avg_score:.2f}/10")
+    print(f"pass_rate:       {passed / total * 100:.2f}%")
 
 
 def main() -> int:
@@ -393,6 +536,52 @@ def main() -> int:
         print(f"Configuration error: {error}", file=sys.stderr)
         return 2
 
+    if args.mode == "llm-judge":
+        # Run QA for each case, then judge with LLM
+        judge_results: list[LLMJudgeResult] = []
+        for case in cases:
+            kb_id = args.knowledge_base_id or case.knowledge_base_id
+            if not kb_id or kb_id == PLACEHOLDER_KNOWLEDGE_BASE_ID:
+                judge_results.append(LLMJudgeResult(
+                    question=case.question,
+                    answer="",
+                    score=0.0,
+                    reasoning="",
+                    passed=False,
+                    error="knowledge_base_id not configured; use --knowledge-base-id",
+                ))
+                continue
+            try:
+                qa_result = call_qa(
+                    api_url=args.api_url,
+                    case=case,
+                    knowledge_base_id=kb_id,
+                    access_token=args.access_token,
+                    limit=args.limit,
+                    timeout=args.timeout,
+                )
+            except LocalAPIError as error:
+                judge_results.append(LLMJudgeResult(
+                    question=case.question,
+                    answer="",
+                    score=0.0,
+                    reasoning="",
+                    passed=False,
+                    error=str(error),
+                ))
+                continue
+            judge_results.append(judge_with_llm(
+                case=case,
+                qa_result=qa_result,
+                llm_url=args.llm_url,
+                model=args.llm_model,
+                min_score=args.llm_min_score,
+                timeout=args.timeout,
+            ))
+        print_llm_judge_report(judge_results, args.api_url, args.llm_min_score)
+        return 0 if all(r.passed for r in judge_results) else 1
+
+    # Default: keyword mode
     results = [
         evaluate_case(
             case=case,
@@ -410,3 +599,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

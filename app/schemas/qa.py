@@ -10,6 +10,7 @@ class QARequest(BaseModel):
     conversation_id: uuid.UUID | None = None
     question: str = Field(min_length=1, max_length=4096)
     limit: int = Field(default=5, ge=1, le=10)
+    hybrid: bool = False
 
     @field_validator("question")
     @classmethod

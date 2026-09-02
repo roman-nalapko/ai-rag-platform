@@ -48,6 +48,4 @@ async def test_document_upload_rejects_oversized_file_before_database_access(
     )
 
     assert response.status_code == 413
-    assert response.json() == {
-        "detail": "Uploaded file exceeds the 1 byte limit"
-    }
+    assert response.json() == {"detail": "Uploaded file exceeds the 1 byte limit"}

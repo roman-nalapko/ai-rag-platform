@@ -4,6 +4,11 @@ AI RAG Platform is intentionally local-first, but the backend can be deployed
 as a small production-style stack when the LLM provider exposes an
 OpenAI-compatible API.
 
+The repository's demo authentication is not suitable for an internet-facing
+deployment. `POST /auth/demo-token` accepts an existing user ID without proving
+identity. Disable demo mode and replace these endpoints with a real identity
+provider before exposing the API publicly.
+
 ## Recommended small-cloud topology
 
 ```text
@@ -39,8 +44,10 @@ interactive Search/QA traffic.
 | `LM_STUDIO_MAX_TOKENS` | Maximum generated answer tokens |
 | `JWT_SECRET_KEY` | Strong secret for signing local JWTs |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Access-token lifetime |
+| `DEMO_MODE_ENABLED` | Enable local-only UI, user creation, and demo-token endpoints |
 | `DOCUMENT_WORKER_ENABLED` | `false` for API containers when a separate worker runs |
 | `DOCUMENT_WORKER_POLL_SECONDS` | Queue polling interval |
+| `DOCUMENT_WORKER_STALE_AFTER_SECONDS` | Age after which an interrupted processing job may be recovered |
 | `RERANKING_ENABLED` | Enable optional local keyword-overlap reranking |
 | `RERANKING_CANDIDATE_MULTIPLIER` | Qdrant over-fetch multiplier for reranking |
 | `LOG_LEVEL` | JSON log verbosity |
@@ -56,16 +63,20 @@ interactive Search/QA traffic.
    containers.
 7. Configure the LLM endpoint and model IDs.
 8. Put the API behind HTTPS and restrict direct database/Qdrant access.
+9. Set `DEMO_MODE_ENABLED=false` and supply production authentication before
+   accepting internet traffic.
+10. Enforce request/body limits and rate limiting at the reverse proxy.
 
 ## Security limitations
 
-- Current auth is local demo JWT only. Production deployments should add
+- Current auth is local demo JWT only. With `DEMO_MODE_ENABLED=false`, the
+  unsafe account and token bootstrap endpoints plus `/demo` are unavailable.
+  Production deployments still need to add
   password login, refresh-token rotation, account recovery, organization roles,
   and audit logs.
 - Raw uploads are stored on a local/shared filesystem. Production deployments
   should move them to object storage with lifecycle policies.
-- The `/demo` UI is useful for demos, but production deployments may want to
-  disable it or protect it behind the same frontend auth layer.
+- Never expose the demo mode to an untrusted network.
 - `JWT_SECRET_KEY` must be a real secret from a secrets manager, not the
   `.env.example` placeholder.
 

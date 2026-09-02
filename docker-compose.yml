@@ -20,8 +20,10 @@ services:
       RERANKING_CANDIDATE_MULTIPLIER: ${RERANKING_CANDIDATE_MULTIPLIER:-3}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      DEMO_MODE_ENABLED: ${DEMO_MODE_ENABLED:-true}
       DOCUMENT_WORKER_ENABLED: "false"
       DOCUMENT_WORKER_POLL_SECONDS: ${DOCUMENT_WORKER_POLL_SECONDS:-2}
+      DOCUMENT_WORKER_STALE_AFTER_SECONDS: ${DOCUMENT_WORKER_STALE_AFTER_SECONDS:-900}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -68,7 +70,9 @@ services:
       RERANKING_CANDIDATE_MULTIPLIER: ${RERANKING_CANDIDATE_MULTIPLIER:-3}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      DEMO_MODE_ENABLED: ${DEMO_MODE_ENABLED:-true}
       DOCUMENT_WORKER_POLL_SECONDS: ${DOCUMENT_WORKER_POLL_SECONDS:-2}
+      DOCUMENT_WORKER_STALE_AFTER_SECONDS: ${DOCUMENT_WORKER_STALE_AFTER_SECONDS:-900}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -80,7 +84,7 @@ services:
         condition: service_started
 
   postgres:
-    image: postgres:17
+    image: postgres:17.10
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rag}
@@ -97,8 +101,10 @@ services:
       retries: 10
 
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.18.2
     restart: unless-stopped
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
     ports:
       - "6333:6333"
       - "6334:6334"

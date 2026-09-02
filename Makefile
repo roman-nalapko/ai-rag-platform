@@ -14,7 +14,7 @@ API_URL ?= http://localhost:8000
 KNOWLEDGE_BASE_ID ?=
 ACCESS_TOKEN ?=
 
-.PHONY: help install lint test test-integration check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo demo-flow
+.PHONY: help install format lint test test-integration check migrate migrate-docker run docker-build docker-up docker-api-up docker-down docker-logs health health-llm eval demo demo-flow
 
 help:
 	@echo "AI RAG Platform commands"
@@ -25,7 +25,8 @@ help:
 	@echo "  make migrate-docker  Apply Alembic migrations through Docker Compose"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make lint            Run Ruff"
+	@echo "  make format          Auto-format code and apply safe fixes with Ruff"
+	@echo "  make lint            Run Ruff linter and format checks"
 	@echo "  make test            Run pytest"
 	@echo "  make test-integration Run PostgreSQL/Qdrant integration tests"
 	@echo "  make check           Run lint and tests"
@@ -44,10 +45,15 @@ help:
 	@echo "  make demo-flow       Print guided demo path"
 
 install:
-	$(PIP) install -r requirements.txt
+	$(PIP) install -r requirements.lock
+
+format:
+	$(RUFF) format .
+	$(RUFF) check . --fix
 
 lint:
 	$(RUFF) check .
+	$(RUFF) format --check .
 
 test:
 	$(PYTEST)

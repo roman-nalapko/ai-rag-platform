@@ -143,6 +143,39 @@ curl --silent --show-error \
 The response is an array of knowledge bases owned by that user. Pagination uses
 `limit` from 1 to 100 and `offset` from 0. Unknown users return HTTP `404`.
 
+## Get a knowledge base
+
+```bash
+curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8000/knowledge-bases/22222222-2222-2222-2222-222222222222
+```
+
+Example response:
+
+```json
+{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "user_id": "11111111-1111-1111-1111-111111111111",
+  "name": "Engineering Docs",
+  "description": "Backend and AI documentation",
+  "created_at": "2026-07-04T17:01:00Z"
+}
+```
+
+## Delete a knowledge base
+
+Deleting a knowledge base cascades to its documents, chunks, jobs, conversations,
+messages, stored upload files, and Qdrant vector points.
+
+```bash
+curl --silent --show-error \
+  -X DELETE http://localhost:8000/knowledge-bases/22222222-2222-2222-2222-222222222222 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Successful deletion returns HTTP `204`.
+
 ## Upload a document
 
 Upload a UTF-8 TXT file:
@@ -217,6 +250,32 @@ For failed processing, `status` is `failed`, `processed` remains `false`, and
 `error_message` contains a safe failure description. Search and QA can retrieve
 the document only after its vectors reach Qdrant and the status becomes
 `indexed`.
+
+## List documents in a knowledge base
+
+```bash
+curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/documents?knowledge_base_id=22222222-2222-2222-2222-222222222222&limit=50&offset=0"
+```
+
+Example response:
+
+```json
+[
+  {
+    "id": "f914fdc8-ad6c-4c55-afc6-1039a82ff580",
+    "knowledge_base_id": "22222222-2222-2222-2222-222222222222",
+    "filename": "document.txt",
+    "content_type": "text/plain",
+    "created_at": "2026-07-05T10:00:00Z",
+    "processed": true,
+    "status": "indexed",
+    "error_message": null,
+    "chunks_count": 3
+  }
+]
+```
 
 ## Re-index a document
 
@@ -358,6 +417,27 @@ Example response:
 
 The title is optional. An unknown knowledge base returns HTTP `404`.
 
+## List conversations in a knowledge base
+
+```bash
+curl --silent --show-error \
+  -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/conversations?knowledge_base_id=22222222-2222-2222-2222-222222222222&limit=50&offset=0"
+```
+
+Example response:
+
+```json
+[
+  {
+    "id": "33333333-3333-3333-3333-333333333333",
+    "knowledge_base_id": "22222222-2222-2222-2222-222222222222",
+    "title": "Dependency questions",
+    "created_at": "2026-07-04T18:00:00Z"
+  }
+]
+```
+
 ## Continue a RAG conversation
 
 Pass `conversation_id` to `/qa/ask` to include the last five stored messages in
@@ -382,7 +462,7 @@ stateless QA.
 
 ## Stream a RAG answer
 
-Use `curl -N` to disable output buffering and display tokens as they arrive:
+Use `curl -N` to disable output buffering and display typed SSE events and tokens as they arrive:
 
 ```bash
 curl -N --silent --show-error \
@@ -398,22 +478,52 @@ curl -N --silent --show-error \
   }'
 ```
 
-Example SSE response:
+Example structured SSE response:
 
 ```text
+event: sources
+data: [{"document_id":"f914fdc8-ad6c-4c55-afc6-1039a82ff580","chunk_id":"...","filename":"requirements.txt","chunk_index":0,"score":0.87,"content":"..."}]
+
+event: token
 data: Qdrant
 
+event: token
 data:  handles vector search.
+
+event: done
+data: {"answer":"Qdrant handles vector search.","sources_count":1}
 
 data: [DONE]
 
 ```
 
 The endpoint reuses the normal QA request. It validates the knowledge base and
-conversation, performs retrieval, and opens the LM Studio stream before the SSE
-response begins. After normal completion, the complete user/assistant exchange
-is saved. If the client disconnects or generation fails mid-stream, a partial
-assistant message is not persisted.
+conversation, performs retrieval, emits `event: sources` with chunk citations, and
+streams tokens via `event: token`. After completion, `event: done` reports the summary
+and the user/assistant exchange is persisted.
+
+## Prometheus metrics
+
+Fetch operational metrics in standard Prometheus exposition format:
+
+```bash
+curl --silent --show-error http://localhost:8000/metrics
+```
+
+Example output:
+
+```text
+# HELP rag_http_requests_total Total HTTP requests processed by the API
+# TYPE rag_http_requests_total counter
+rag_http_requests_total{method="POST",path="/qa/ask",status_code="200"} 42.0
+
+# HELP rag_search_duration_seconds Duration of semantic search queries in seconds
+# TYPE rag_search_duration_seconds histogram
+rag_search_duration_seconds_bucket{le="0.05"} 15.0
+rag_search_duration_seconds_bucket{le="+Inf"} 42.0
+rag_search_duration_seconds_sum 1.8412
+rag_search_duration_seconds_count 42.0
+```
 
 ## Read conversation history
 

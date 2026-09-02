@@ -175,7 +175,187 @@ Out of scope:
 
 - Do not add user-facing frontend.
 
+### [P1] Add document and conversation listing endpoints
+
+Status: Done
+Area: api / services
+
+Problem:
+
+- Users could upload documents and start conversations, but had no way to list
+  existing documents or conversations in a knowledge base.
+
+Scope:
+
+- Add `GET /documents?knowledge_base_id=...&limit=50&offset=0` with chunk counts.
+- Add `GET /conversations?knowledge_base_id=...&limit=50&offset=0`.
+- Enforce tenant isolation so users can only list resources in their own knowledge bases.
+
+Acceptance criteria:
+
+- [x] Document listing returns paginated documents with chunk counts.
+- [x] Conversation listing returns paginated conversation sessions.
+- [x] Tenant boundaries are verified and covered by tests.
+
+Out of scope:
+
+- Do not change existing single-resource routes.
+
+### [P1] Add knowledge base retrieval and cascading deletion
+
+Status: Done
+Area: api / services / rag
+
+Problem:
+
+- Knowledge bases could be created and listed, but not inspected individually or deleted
+  with cascading vector and file cleanup.
+
+Scope:
+
+- Add `GET /knowledge-bases/{id}`.
+- Add `DELETE /knowledge-bases/{id}` with cascading PostgreSQL, storage file, and Qdrant points cleanup.
+
+Acceptance criteria:
+
+- [x] `GET /knowledge-bases/{id}` returns knowledge base details.
+- [x] `DELETE /knowledge-bases/{id}` removes DB records, files, and Qdrant vectors.
+- [x] Cross-tenant access is denied with 404.
+
+Out of scope:
+
+- Do not add organization-level ownership yet.
+
+### [P1] Add zero-config test setup for fresh clones
+
+Status: Done
+Area: tests / dx
+
+Problem:
+
+- Running `pytest` immediately after cloning failed with Pydantic settings validation
+  unless `.env` was manually created.
+
+Scope:
+
+- Set test fallback environment variables in `tests/conftest.py` before application imports.
+
+Acceptance criteria:
+
+- [x] `pytest` passes out of the box on a fresh clone with no `.env` file.
+
+Out of scope:
+
+- Do not change production settings loading.
+
+### [P2] Add Unicode tokenization and batch embedding optimization
+
+Status: Done
+Area: rag / llm
+
+Problem:
+
+- `KeywordOverlapReranker` tokenized ASCII only, dropping Cyrillic/multilingual tokens.
+- Document ingestion embedded chunks one-by-one rather than in batch.
+
+Scope:
+
+- Upgrade reranker token pattern to `\w+` with Unicode flag.
+- Add `embed_texts` batch embedding method to `LMStudioClient` and use in `VectorStoreService`.
+
+Acceptance criteria:
+
+- [x] Multilingual / Unicode keyword overlap reranking works and is tested.
+- [x] Chunks are embedded efficiently via batched API requests.
+
+Out of scope:
+
+- Do not require external neural reranker models.
+
 ## P1 - RAG quality
+
+### [P1] Add structured SSE events with sources citation
+
+Status: Done
+Area: api / qa / frontend
+
+Problem:
+- Plain text SSE streams required clients to wait or guess which source chunks were used.
+
+Scope:
+- Emit typed SSE events (`event: sources`, `event: token`, `event: done`, and `data: [DONE]`).
+- Upgrade frontend web demo to render source chunk cards immediately during streaming.
+
+Acceptance criteria:
+- [x] Stream emits `event: sources` with document chunk payloads before tokens start.
+- [x] Web demo parses typed SSE events and updates UI real-time.
+- [x] Tests cover typed event emission and error status mappings.
+
+### [P1] Add Prometheus metrics exporter
+
+Status: Done
+Area: observability / infra
+
+Problem:
+- Production systems need metric counters and latency histograms for Prometheus / Grafana scraping.
+
+Scope:
+- Implement zero-dependency Prometheus metrics registry emitting standard exposition format.
+- Add `GET /metrics` endpoint.
+- Instrument HTTP request durations, vector search latency, and worker jobs.
+
+Acceptance criteria:
+- [x] `GET /metrics` exports counters and histograms with label dimensions.
+- [x] All HTTP requests and durations are automatically measured.
+- [x] Unit and API tests verify metric rendering.
+
+### [P1] Add CI service containers for automated integration tests
+
+Status: Done
+Area: infra / tests / ci
+
+Problem:
+- Integration tests existed locally but did not run automatically on GitHub Actions PRs.
+
+Scope:
+- Add ephemeral `postgres:17-alpine` and `qdrant/qdrant:latest` service containers to `.github/workflows/ci.yml`.
+- Run migrations and `RUN_INTEGRATION_TESTS=1 pytest -v` in CI.
+
+Acceptance criteria:
+- [x] GitHub Actions workflow runs full PostgreSQL and Qdrant integration tests.
+- [x] Tests verify migrations, multi-tenant persistence, and vector payload filters.
+
+### [P1] Add Hybrid Retrieval with Reciprocal Rank Fusion (RRF)
+
+Status: Done
+Area: retrieval / rag
+
+Problem:
+- Dense vector similarity can miss exact keyword / identifier matches.
+
+Scope:
+- Implement generic Reciprocal Rank Fusion (`reciprocal_rank_fusion`) algorithm.
+- Add PostgreSQL full-text search (`search_text`) and hybrid retrieval (`search_hybrid`).
+
+Acceptance criteria:
+- [x] RRF formula `sum(1 / (k + rank))` merges ranked lists properly.
+- [x] Tests verify generic RRF behavior, rank ordering, and candidate limits.
+
+### [P1] Add Multi-Provider LLM & Embedding Client Factory
+
+Status: Done
+Area: llm / architecture
+
+Problem:
+- Tightly coupling to LM Studio naming made it harder to use Ollama, OpenAI, vLLM, or other OpenAI-compatible engines.
+
+Scope:
+- Define `LLMClient` protocol and `get_llm_client` / `OpenAICompatibleClient` abstractions.
+- Support interchangeable OpenAI-compatible endpoints with backwards compatibility.
+
+Acceptance criteria:
+- [x] Clean `LLMClient` protocol and `get_llm_client` factory.
+- [x] Backwards-compatible aliases preserved.
 
 ### [P1] Improve retrieval evaluation beyond keyword matching
 

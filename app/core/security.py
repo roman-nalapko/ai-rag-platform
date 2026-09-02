@@ -6,11 +6,32 @@ import time
 import uuid
 from typing import Any
 
+import bcrypt
+
 from app.core.config import settings
 
 
 class InvalidTokenError(ValueError):
     """Raised when a JWT is missing, malformed, expired, or invalid."""
+
+
+class InvalidPasswordError(ValueError):
+    """Raised when a password does not meet requirements."""
+
+
+def hash_password(plain: str) -> str:
+    """Return a bcrypt hash of *plain*. Raises InvalidPasswordError if too short."""
+    if len(plain) < 8:
+        raise InvalidPasswordError("Password must be at least 8 characters")
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    """Return True if *plain* matches the stored *hashed* password."""
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
@@ -22,8 +43,8 @@ def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
         "exp": expires_at,
         "iat": int(time.time()),
     }
-    signing_input = (
-        f"{_base64url_json(header)}.{_base64url_json(payload)}".encode("ascii")
+    signing_input = f"{_base64url_json(header)}.{_base64url_json(payload)}".encode(
+        "ascii"
     )
     signature = _sign(signing_input)
     return f"{signing_input.decode('ascii')}.{signature}", expires_in
@@ -46,7 +67,7 @@ def decode_access_token(token: str) -> uuid.UUID:
 
     payload = _decode_segment(payload_segment)
     expires_at = payload.get("exp")
-    if not isinstance(expires_at, int) or expires_at < int(time.time()):
+    if not isinstance(expires_at, int) or expires_at <= int(time.time()):
         raise InvalidTokenError("Token has expired")
 
     subject = payload.get("sub")

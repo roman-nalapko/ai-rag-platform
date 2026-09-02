@@ -1,13 +1,16 @@
 import os
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
+import pytest_asyncio
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models
 from sqlalchemy import text
 
 from app.core.config import settings
-from app.db.session import AsyncSessionFactory
+from app.db.session import AsyncSessionFactory, dispose_database_engine
+from app.services.document_worker import DocumentWorker
 
 pytestmark = pytest.mark.integration
 
@@ -22,6 +25,12 @@ def require_integration_flag() -> None:
         pytest.skip("Set RUN_INTEGRATION_TESTS=1 to run integration tests")
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def reset_database_pool_after_test() -> None:
+    yield
+    await dispose_database_engine()
+
+
 @pytest.mark.asyncio
 async def test_postgres_migrations_and_document_chunk_persistence() -> None:
     user_id = uuid.uuid4()
@@ -29,6 +38,7 @@ async def test_postgres_migrations_and_document_chunk_persistence() -> None:
     document_id = uuid.uuid4()
     chunk_id = uuid.uuid4()
     email = f"integration-{user_id}@example.com"
+    committed = False
 
     async with AsyncSessionFactory() as session:
         try:
@@ -107,6 +117,7 @@ async def test_postgres_migrations_and_document_chunk_persistence() -> None:
                 {"id": chunk_id, "document_id": document_id},
             )
             await session.commit()
+            committed = True
 
             persisted = await session.scalar(
                 text(
@@ -120,11 +131,12 @@ async def test_postgres_migrations_and_document_chunk_persistence() -> None:
             )
             assert persisted == 1
         finally:
-            await session.execute(
-                text("DELETE FROM users WHERE id = :id"),
-                {"id": user_id},
-            )
-            await session.commit()
+            if committed:
+                await session.execute(
+                    text("DELETE FROM users WHERE id = :id"),
+                    {"id": user_id},
+                )
+                await session.commit()
 
 
 @pytest.mark.asyncio
@@ -190,3 +202,100 @@ async def test_qdrant_vector_payload_filtering() -> None:
         if await client.collection_exists(collection_name):
             await client.delete_collection(collection_name)
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_recovers_only_stale_processing_jobs() -> None:
+    user_id = uuid.uuid4()
+    knowledge_base_id = uuid.uuid4()
+    stale_document_id = uuid.uuid4()
+    recent_document_id = uuid.uuid4()
+    stale_job_id = uuid.uuid4()
+    recent_job_id = uuid.uuid4()
+    now = datetime.now(UTC)
+
+    async with AsyncSessionFactory() as session:
+        try:
+            await session.execute(
+                text("INSERT INTO users (id, email) VALUES (:id, :email)"),
+                {"id": user_id, "email": f"worker-{user_id}@example.com"},
+            )
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO knowledge_bases (id, user_id, name)
+                    VALUES (:id, :user_id, 'Worker Recovery KB')
+                    """
+                ),
+                {"id": knowledge_base_id, "user_id": user_id},
+            )
+            for document_id, filename in (
+                (stale_document_id, "stale.txt"),
+                (recent_document_id, "recent.txt"),
+            ):
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO documents (
+                            id, knowledge_base_id, filename, content_type,
+                            processed, status
+                        )
+                        VALUES (
+                            :id, :knowledge_base_id, :filename, 'text/plain',
+                            false, 'processing'
+                        )
+                        """
+                    ),
+                    {
+                        "id": document_id,
+                        "knowledge_base_id": knowledge_base_id,
+                        "filename": filename,
+                    },
+                )
+            for job_id, document_id, started_at in (
+                (stale_job_id, stale_document_id, now - timedelta(hours=1)),
+                (recent_job_id, recent_document_id, now),
+            ):
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO document_jobs (
+                            id, document_id, status, attempts, started_at
+                        )
+                        VALUES (:id, :document_id, 'processing', 1, :started_at)
+                        """
+                    ),
+                    {
+                        "id": job_id,
+                        "document_id": document_id,
+                        "started_at": started_at,
+                    },
+                )
+            await session.commit()
+
+            await DocumentWorker().recover_processing_jobs()
+
+            rows = await session.execute(
+                text(
+                    """
+                    SELECT j.id, j.status, d.status
+                    FROM document_jobs AS j
+                    JOIN documents AS d ON d.id = j.document_id
+                    WHERE j.id IN (:stale_job_id, :recent_job_id)
+                    """
+                ),
+                {
+                    "stale_job_id": stale_job_id,
+                    "recent_job_id": recent_job_id,
+                },
+            )
+            statuses = {row[0]: (row[1], row[2]) for row in rows}
+            assert statuses[stale_job_id] == ("pending", "pending")
+            assert statuses[recent_job_id] == ("processing", "processing")
+        finally:
+            await session.rollback()
+            await session.execute(
+                text("DELETE FROM users WHERE id = :id"),
+                {"id": user_id},
+            )
+            await session.commit()

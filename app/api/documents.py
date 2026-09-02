@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import (
     APIRouter,
@@ -7,6 +7,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     UploadFile,
     status,
 )
@@ -16,7 +17,11 @@ from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.rag.vector_store import VectorStoreError
-from app.schemas.document import DocumentDetailResponse, DocumentUploadResponse
+from app.schemas.document import (
+    DocumentDetailResponse,
+    DocumentStatusValue,
+    DocumentUploadResponse,
+)
 from app.services.document import (
     DocumentAlreadyProcessingError,
     DocumentNotFoundError,
@@ -29,6 +34,52 @@ from app.services.document import (
 from app.services.knowledge_base import KnowledgeBaseNotFoundError
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+
+@router.get("", response_model=list[DocumentDetailResponse])
+async def list_documents(
+    knowledge_base_id: Annotated[
+        uuid.UUID,
+        Query(description="Knowledge base ID to list documents from"),
+    ],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    limit: Annotated[
+        int,
+        Query(ge=1, le=100, description="Maximum number of records to return"),
+    ] = 50,
+    offset: Annotated[
+        int,
+        Query(ge=0, description="Number of records to skip"),
+    ] = 0,
+) -> list[DocumentDetailResponse]:
+    try:
+        results = await DocumentService(session).list_for_knowledge_base(
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user.id,
+            limit=limit,
+            offset=offset,
+        )
+    except KnowledgeBaseNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+
+    return [
+        DocumentDetailResponse(
+            id=result.document.id,
+            knowledge_base_id=result.document.knowledge_base_id,
+            filename=result.document.filename,
+            content_type=result.document.content_type,
+            created_at=result.document.created_at,
+            processed=result.document.processed,
+            status=cast(DocumentStatusValue, result.document.status),
+            error_message=result.document.error_message,
+            chunks_count=result.chunks_count,
+        )
+        for result in results
+    ]
 
 
 @router.post(
@@ -86,7 +137,7 @@ async def upload_document(
         content_type=result.document.content_type,
         created_at=result.document.created_at,
         processed=result.document.processed,
-        status=result.document.status,
+        status=cast(DocumentStatusValue, result.document.status),
         error_message=result.document.error_message,
         chunks_count=result.chunks_count,
         indexed=False,
@@ -114,7 +165,7 @@ async def get_document(
         content_type=result.document.content_type,
         created_at=result.document.created_at,
         processed=result.document.processed,
-        status=result.document.status,
+        status=cast(DocumentStatusValue, result.document.status),
         error_message=result.document.error_message,
         chunks_count=result.chunks_count,
     )
@@ -179,7 +230,7 @@ async def reindex_document(
         content_type=result.document.content_type,
         created_at=result.document.created_at,
         processed=result.document.processed,
-        status=result.document.status,
+        status=cast(DocumentStatusValue, result.document.status),
         error_message=result.document.error_message,
         chunks_count=result.chunks_count,
     )

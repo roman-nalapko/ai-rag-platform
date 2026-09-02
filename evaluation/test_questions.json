@@ -5,5 +5,82 @@
     "expected_source_keywords": ["FastAPI", "PostgreSQL", "Qdrant"],
     "expected_source_filenames": ["sample_document.txt"],
     "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "Which databases are used for relational data and vector search?",
+    "expected_keywords": ["PostgreSQL", "Qdrant"],
+    "expected_source_keywords": ["PostgreSQL", "Qdrant"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What document formats are supported for ingestion?",
+    "expected_keywords": ["TXT", "PDF"],
+    "expected_source_keywords": ["TXT", "PDF"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What status values does a document transition through during processing?",
+    "expected_keywords": ["pending", "processing", "indexed"],
+    "expected_source_keywords": ["pending", "processing", "indexed"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What is the secret flight code of the Apollo 11 moon mission?",
+    "expected_keywords": ["I don't have enough information"],
+    "expected_source_keywords": [],
+    "expected_source_filenames": [],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What is the main purpose of the AI RAG platform?",
+    "expected_keywords": ["RAG", "retrieval", "document"],
+    "expected_source_keywords": ["RAG", "retrieval"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "How does the platform handle document chunking?",
+    "expected_keywords": ["chunk"],
+    "expected_source_keywords": ["chunk"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What embedding model integration does the platform support?",
+    "expected_keywords": ["LM Studio", "embedding"],
+    "expected_source_keywords": ["LM Studio", "embedding"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "How does the platform support multi-tenancy?",
+    "expected_keywords": ["user", "knowledge base"],
+    "expected_source_keywords": ["user", "knowledge"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What Python version does the project target?",
+    "expected_keywords": ["Python", "3"],
+    "expected_source_keywords": ["Python"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "Does the platform support streaming responses?",
+    "expected_keywords": ["stream"],
+    "expected_source_keywords": ["stream"],
+    "expected_source_filenames": ["sample_document.txt"],
+    "knowledge_base_id": "optional-placeholder"
+  },
+  {
+    "question": "What is the capital of France?",
+    "expected_keywords": ["I don't have enough information"],
+    "expected_source_keywords": [],
+    "expected_source_filenames": [],
+    "knowledge_base_id": "optional-placeholder"
   }
 ]

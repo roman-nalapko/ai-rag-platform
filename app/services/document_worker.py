@@ -1,10 +1,12 @@
 import asyncio
 import logging
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 
 from app.core.config import settings
+from app.core.metrics import metrics
 from app.db.session import AsyncSessionFactory
 from app.models.document import Document, DocumentStatus
 from app.models.document_job import DocumentJob, DocumentJobStatus
@@ -42,36 +44,67 @@ class DocumentWorker:
                 "document_id": document_id,
             },
         )
-        async with AsyncSessionFactory() as session:
-            await DocumentService(session).process_pending(document_id)
-
-        await self._complete_job(job_id, document_id)
+        try:
+            async with AsyncSessionFactory() as session:
+                await DocumentService(session).process_pending(document_id)
+        except Exception:
+            logger.exception(
+                "Unhandled exception during document processing",
+                extra={
+                    "job_id": str(job_id),
+                    "document_id": str(document_id),
+                },
+            )
+        finally:
+            await self._complete_job(job_id, document_id)
         return True
 
     async def recover_processing_jobs(self) -> None:
+        cutoff = datetime.now(UTC) - timedelta(
+            seconds=settings.DOCUMENT_WORKER_STALE_AFTER_SECONDS
+        )
         async with AsyncSessionFactory() as session:
-            await session.execute(
-                update(DocumentJob)
-                .where(DocumentJob.status == DocumentJobStatus.PROCESSING.value)
-                .values(
-                    status=DocumentJobStatus.PENDING.value,
-                    error_message=None,
-                    started_at=None,
-                    updated_at=datetime.now(UTC),
-                )
+            stale_document_ids = select(DocumentJob.document_id).where(
+                DocumentJob.status == DocumentJobStatus.PROCESSING.value,
+                or_(
+                    DocumentJob.started_at.is_(None),
+                    DocumentJob.started_at < cutoff,
+                ),
             )
+            # Reset documents first: the subquery intentionally still sees the
+            # jobs in their processing state inside this transaction.
             await session.execute(
                 update(Document)
-                .where(Document.status == DocumentStatus.PROCESSING.value)
+                .where(
+                    Document.status == DocumentStatus.PROCESSING.value,
+                    Document.id.in_(stale_document_ids),
+                )
                 .values(
                     status=DocumentStatus.PENDING.value,
                     processed=False,
                     error_message=None,
                 )
             )
+            await session.execute(
+                update(DocumentJob)
+                .where(
+                    DocumentJob.status == DocumentJobStatus.PROCESSING.value,
+                    or_(
+                        DocumentJob.started_at.is_(None),
+                        DocumentJob.started_at < cutoff,
+                    ),
+                )
+                .values(
+                    status=DocumentJobStatus.PENDING.value,
+                    error_message=None,
+                    started_at=None,
+                    completed_at=None,
+                    updated_at=datetime.now(UTC),
+                )
+            )
             await session.commit()
 
-    async def _claim_next_job(self) -> tuple[object, object] | None:
+    async def _claim_next_job(self) -> tuple[uuid.UUID, uuid.UUID] | None:
         async with AsyncSessionFactory() as session:
             result = await session.execute(
                 select(DocumentJob)
@@ -95,7 +128,11 @@ class DocumentWorker:
             await session.commit()
             return job_id, document_id
 
-    async def _complete_job(self, job_id: object, document_id: object) -> None:
+    async def _complete_job(
+        self,
+        job_id: uuid.UUID,
+        document_id: uuid.UUID,
+    ) -> None:
         async with AsyncSessionFactory() as session:
             job = await session.get(DocumentJob, job_id)
             document = await session.get(Document, document_id)
@@ -106,6 +143,7 @@ class DocumentWorker:
             if document is not None and document.status == DocumentStatus.INDEXED.value:
                 job.status = DocumentJobStatus.COMPLETED.value
                 job.error_message = None
+                outcome = "completed"
             else:
                 job.status = DocumentJobStatus.FAILED.value
                 job.error_message = (
@@ -113,6 +151,16 @@ class DocumentWorker:
                     if document is not None and document.error_message
                     else "Document indexing failed"
                 )
+                outcome = "failed"
+
+            if job.started_at is not None:
+                duration_seconds = (completed_at - job.started_at).total_seconds()
+                metrics.document_indexing_duration_seconds.observe(
+                    max(duration_seconds, 0.0),
+                    outcome=outcome,
+                )
+            metrics.document_jobs_total.inc(outcome=outcome)
+
             job.completed_at = completed_at
             job.updated_at = completed_at
             await session.commit()

@@ -1,7 +1,17 @@
+import os
 from collections.abc import AsyncIterator
 from types import SimpleNamespace
 from typing import cast
 from uuid import UUID
+
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/rag",
+)
+os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
+os.environ.setdefault("LM_STUDIO_CHAT_MODEL", "test-chat-model")
+os.environ.setdefault("LM_STUDIO_EMBEDDING_MODEL", "test-embedding-model")
+os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key-for-local-testing")
 
 import httpx
 import pytest_asyncio

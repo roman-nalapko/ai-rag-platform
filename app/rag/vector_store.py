@@ -89,6 +89,19 @@ class VectorStoreService:
         except Exception as error:
             raise VectorStoreError("Failed to delete document vectors") from error
 
+    async def delete_knowledge_base_chunks(self, knowledge_base_id: uuid.UUID) -> None:
+        try:
+            if not await self._client.collection_exists(COLLECTION_NAME):
+                return
+
+            await self._client.delete(
+                collection_name=COLLECTION_NAME,
+                points_selector=self._knowledge_base_filter(knowledge_base_id),
+                wait=True,
+            )
+        except Exception as error:
+            raise VectorStoreError("Failed to delete knowledge base vectors") from error
+
     async def search(
         self,
         query_vector: list[float],
@@ -157,20 +170,17 @@ class VectorStoreService:
         self,
         chunks: Sequence[DocumentChunk],
     ) -> list[list[float]]:
-        first_embedding = await self._embedding_client.embed_text(chunks[0].content)
-        if not first_embedding:
+        texts = [chunk.content for chunk in chunks]
+        embeddings = await self._embedding_client.embed_texts(texts)
+        if not embeddings or not embeddings[0]:
             raise VectorStoreError("LM Studio returned an empty embedding")
 
-        vector_size = len(first_embedding)
-        embeddings = [first_embedding]
-
-        for chunk in chunks[1:]:
-            embedding = await self._embedding_client.embed_text(chunk.content)
+        vector_size = len(embeddings[0])
+        for embedding in embeddings[1:]:
             if len(embedding) != vector_size:
                 raise VectorStoreError(
                     "LM Studio returned embeddings with inconsistent dimensions"
                 )
-            embeddings.append(embedding)
 
         return embeddings
 

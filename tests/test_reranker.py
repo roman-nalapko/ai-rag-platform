@@ -59,3 +59,21 @@ def test_search_candidate_limit_expands_when_reranking_enabled(
 
     assert SearchService._candidate_limit(5) == 15
     assert SearchService._candidate_limit(50) == 50
+
+
+def test_keyword_overlap_reranker_supports_unicode_terms() -> None:
+    matches = [
+        Match(content="быстрый старт и документация"),
+        Match(content="векторная база данных и поиск по документам"),
+    ]
+
+    reranked = KeywordOverlapReranker().rerank(
+        "векторная база данных",
+        matches,
+        limit=2,
+    )
+
+    assert reranked == [
+        Match(content="векторная база данных и поиск по документам"),
+        Match(content="быстрый старт и документация"),
+    ]

@@ -5,7 +5,7 @@ from typing import Protocol, TypeVar
 from app.core.config import settings
 
 T = TypeVar("T")
-TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+")
+TOKEN_PATTERN = re.compile(r"\w+", re.UNICODE)
 
 
 class Reranker(Protocol):
@@ -27,7 +27,11 @@ class KeywordOverlapReranker:
             return list(matches[:limit])
 
         scored_matches = [
-            (self._overlap_score(query_terms, str(getattr(match, "content", ""))), index, match)
+            (
+                self._overlap_score(query_terms, str(getattr(match, "content", ""))),
+                index,
+                match,
+            )
             for index, match in enumerate(matches)
         ]
         scored_matches.sort(key=lambda item: (-item[0], item[1]))

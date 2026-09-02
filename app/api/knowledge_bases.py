@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.rag.vector_store import VectorStoreError
 from app.schemas.knowledge_base import KnowledgeBaseCreate, KnowledgeBaseResponse
 from app.services.knowledge_base import (
     KnowledgeBaseAccessDeniedError,
+    KnowledgeBaseNotFoundError,
     KnowledgeBaseService,
     UserNotFoundError,
 )
@@ -84,3 +86,46 @@ async def list_knowledge_bases(
         KnowledgeBaseResponse.model_validate(knowledge_base)
         for knowledge_base in knowledge_bases
     ]
+
+
+@router.get("/{knowledge_base_id}", response_model=KnowledgeBaseResponse)
+async def get_knowledge_base(
+    knowledge_base_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> KnowledgeBaseResponse:
+    try:
+        knowledge_base = await KnowledgeBaseService(session).get(
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user.id,
+        )
+    except KnowledgeBaseNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+
+    return KnowledgeBaseResponse.model_validate(knowledge_base)
+
+
+@router.delete("/{knowledge_base_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_knowledge_base(
+    knowledge_base_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    try:
+        await KnowledgeBaseService(session).delete(
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user.id,
+        )
+    except KnowledgeBaseNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except VectorStoreError as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        ) from error

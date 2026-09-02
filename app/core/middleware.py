@@ -5,8 +5,29 @@ from time import perf_counter
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.logging import elapsed_ms, reset_request_id, set_request_id
+from app.core.metrics import metrics
 
 logger = logging.getLogger("app.requests")
+
+
+def _metrics_path(scope: Scope, raw_path: str) -> str:
+    """Use the matched route template and collapse unmatched paths.
+
+    Raw paths are attacker-controlled and would create unbounded Prometheus
+    label cardinality if every unique 404 path became a separate time series.
+    Starlette attaches the matched route to the scope before the response is
+    sent, so parameterized routes retain a stable template such as
+    ``/documents/{document_id}``.
+    """
+    route = scope.get("route")
+    route_path = getattr(route, "path", None)
+    if isinstance(route_path, str) and route_path:
+        return route_path
+    if raw_path in {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}:
+        return raw_path
+    if raw_path == "/demo" or raw_path.startswith("/demo/"):
+        return "/demo/{path}"
+    return "/__unmatched__"
 
 
 class RequestLoggingMiddleware:
@@ -57,13 +78,26 @@ class RequestLoggingMiddleware:
                 and not completed
             ):
                 completed = True
+                duration_ms = elapsed_ms(started_at)
+                duration_seconds = perf_counter() - started_at
+                metrics_path = _metrics_path(scope, path)
+                metrics.http_requests_total.inc(
+                    method=method,
+                    path=metrics_path,
+                    status_code=str(status_code),
+                )
+                metrics.http_request_duration_seconds.observe(
+                    duration_seconds,
+                    method=method,
+                    path=metrics_path,
+                )
                 logger.info(
                     "request_completed",
                     extra={
                         "method": method,
                         "path": path,
                         "status_code": status_code,
-                        "duration_ms": elapsed_ms(started_at),
+                        "duration_ms": duration_ms,
                         "outcome": "completed",
                     },
                 )
@@ -72,13 +106,26 @@ class RequestLoggingMiddleware:
             await self._app(scope, receive, send_with_request_id)
         except Exception:
             if not completed:
+                duration_ms = elapsed_ms(started_at)
+                duration_seconds = perf_counter() - started_at
+                metrics_path = _metrics_path(scope, path)
+                metrics.http_requests_total.inc(
+                    method=method,
+                    path=metrics_path,
+                    status_code=str(status_code),
+                )
+                metrics.http_request_duration_seconds.observe(
+                    duration_seconds,
+                    method=method,
+                    path=metrics_path,
+                )
                 logger.exception(
                     "request_failed",
                     extra={
                         "method": method,
                         "path": path,
                         "status_code": status_code,
-                        "duration_ms": elapsed_ms(started_at),
+                        "duration_ms": duration_ms,
                         "outcome": "failed",
                     },
                 )

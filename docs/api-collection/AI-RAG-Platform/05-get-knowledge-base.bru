@@ -1,0 +1,15 @@
+meta {
+  name: 05 Get Knowledge Base
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/knowledge-bases/{{knowledge_base_id}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

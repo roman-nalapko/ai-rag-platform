@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from typing import Any, cast
 
 from openai.types.chat import ChatCompletionMessageParam
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,11 +53,17 @@ class QAConversationNotFoundError(ValueError):
     """Raised when a conversation does not exist in the requested scope."""
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class QAResult:
     question: str
     answer: str
     sources: list[SearchMatch]
+
+
+@dataclass(frozen=True)
+class QAStreamEvent:
+    event: str
+    data: Any
 
 
 class QAService:
@@ -77,6 +84,7 @@ class QAService:
         knowledge_base_id: uuid.UUID,
         current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None = None,
+        hybrid: bool = False,
     ) -> QAResult:
         sources, history = await self._prepare_request(
             question=question,
@@ -84,6 +92,7 @@ class QAService:
             knowledge_base_id=knowledge_base_id,
             current_user_id=current_user_id,
             conversation_id=conversation_id,
+            hybrid=hybrid,
         )
 
         if not sources:
@@ -132,6 +141,7 @@ class QAService:
         knowledge_base_id: uuid.UUID,
         current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None = None,
+        hybrid: bool = False,
     ) -> AsyncIterator[str]:
         sources, history = await self._prepare_request(
             question=question,
@@ -139,6 +149,7 @@ class QAService:
             knowledge_base_id=knowledge_base_id,
             current_user_id=current_user_id,
             conversation_id=conversation_id,
+            hybrid=hybrid,
         )
 
         if not sources:
@@ -168,6 +179,127 @@ class QAService:
             sources=sources,
         )
 
+    async def stream_events(
+        self,
+        question: str,
+        limit: int,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+        conversation_id: uuid.UUID | None = None,
+        hybrid: bool = False,
+    ) -> AsyncIterator[QAStreamEvent]:
+        sources, history = await self._prepare_request(
+            question=question,
+            limit=limit,
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
+            conversation_id=conversation_id,
+            hybrid=hybrid,
+        )
+
+        if not sources:
+            return self._stream_events_fallback(
+                question=question,
+                knowledge_base_id=knowledge_base_id,
+                current_user_id=current_user_id,
+                conversation_id=conversation_id,
+            )
+
+        try:
+            token_stream = await self._llm_client.stream_chat_completion(
+                prompt=question,
+                context=self._build_context(sources),
+                history=history,
+                system_prompt=RAG_SYSTEM_PROMPT,
+            )
+        except LMStudioClientError as error:
+            raise QALLMUnavailableError("LM Studio is unavailable") from error
+
+        return self._stream_events_and_persist(
+            token_stream=token_stream,
+            question=question,
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
+            conversation_id=conversation_id,
+            sources=sources,
+        )
+
+    async def _stream_events_fallback(
+        self,
+        question: str,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+        conversation_id: uuid.UUID | None,
+    ) -> AsyncIterator[QAStreamEvent]:
+        yield QAStreamEvent(event="sources", data=[])
+        yield QAStreamEvent(event="token", data=INSUFFICIENT_CONTEXT_ANSWER)
+        yield QAStreamEvent(
+            event="done",
+            data={"answer": INSUFFICIENT_CONTEXT_ANSWER, "sources_count": 0},
+        )
+        await self._save_exchange(
+            conversation_id,
+            knowledge_base_id,
+            current_user_id,
+            QAResult(
+                question=question,
+                answer=INSUFFICIENT_CONTEXT_ANSWER,
+                sources=[],
+            ),
+        )
+
+    async def _stream_events_and_persist(
+        self,
+        token_stream: AsyncIterator[str],
+        question: str,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+        conversation_id: uuid.UUID | None,
+        sources: list[SearchMatch],
+    ) -> AsyncIterator[QAStreamEvent]:
+        sources_payload = [
+            {
+                "document_id": str(source.document_id),
+                "chunk_id": str(source.chunk_id),
+                "filename": source.filename,
+                "chunk_index": source.chunk_index,
+                "score": round(source.score, 4),
+                "content": source.content,
+            }
+            for source in sources
+        ]
+        yield QAStreamEvent(event="sources", data=sources_payload)
+
+        answer_parts: list[str] = []
+        completed = False
+        try:
+            async for token in token_stream:
+                answer_parts.append(token)
+                yield QAStreamEvent(event="token", data=token)
+            completed = True
+        except LMStudioClientError as error:
+            raise QALLMUnavailableError("LM Studio is unavailable") from error
+        finally:
+            if not completed:
+                close_stream = getattr(token_stream, "aclose", None)
+                if close_stream is not None:
+                    await close_stream()
+
+        answer = "".join(answer_parts)
+        if not answer.strip():
+            raise QALLMUnavailableError("LM Studio returned an empty response")
+
+        await self._save_exchange(
+            conversation_id,
+            knowledge_base_id,
+            current_user_id,
+            QAResult(question=question, answer=answer, sources=sources),
+        )
+        yield QAStreamEvent(
+            event="done",
+            data={"answer": answer, "sources_count": len(sources)},
+        )
+
     async def _prepare_request(
         self,
         question: str,
@@ -175,37 +307,45 @@ class QAService:
         knowledge_base_id: uuid.UUID,
         current_user_id: uuid.UUID,
         conversation_id: uuid.UUID | None,
+        hybrid: bool = False,
     ) -> tuple[list[SearchMatch], list[ChatCompletionMessageParam]]:
         history: list[ChatCompletionMessageParam] = []
         if conversation_id is not None:
             try:
-                recent_messages = (
-                    await self._conversation_service.get_recent_messages(
-                        conversation_id,
-                        knowledge_base_id,
-                        current_user_id,
-                        limit=5,
-                    )
+                recent_messages = await self._conversation_service.get_recent_messages(
+                    conversation_id,
+                    knowledge_base_id,
+                    current_user_id,
+                    limit=5,
                 )
             except ConversationNotFoundError as error:
                 raise QAConversationNotFoundError("Conversation not found") from error
 
             history = [
-                (
+                cast(
+                    ChatCompletionMessageParam,
                     {"role": "user", "content": message.content}
                     if message.role == MessageRole.USER.value
-                    else {"role": "assistant", "content": message.content}
+                    else {"role": "assistant", "content": message.content},
                 )
                 for message in recent_messages
             ]
 
         try:
-            sources = await self._search_service.search(
-                question,
-                limit,
-                knowledge_base_id,
-                current_user_id,
-            )
+            if hybrid:
+                sources = await self._search_service.search_hybrid(
+                    question,
+                    limit,
+                    knowledge_base_id,
+                    current_user_id,
+                )
+            else:
+                sources = await self._search_service.search(
+                    question,
+                    limit,
+                    knowledge_base_id,
+                    current_user_id,
+                )
         except SearchKnowledgeBaseNotFoundError as error:
             raise QAKnowledgeBaseNotFoundError("Knowledge base not found") from error
         except SearchLLMUnavailableError as error:

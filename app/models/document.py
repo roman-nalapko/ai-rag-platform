@@ -70,9 +70,7 @@ class Document(Base):
         server_default=DocumentStatus.PENDING.value,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    knowledge_base: Mapped["KnowledgeBase"] = relationship(
-        back_populates="documents"
-    )
+    knowledge_base: Mapped["KnowledgeBase"] = relationship(back_populates="documents")
     chunks: Mapped[list["DocumentChunk"]] = relationship(
         back_populates="document",
         cascade="all, delete-orphan",

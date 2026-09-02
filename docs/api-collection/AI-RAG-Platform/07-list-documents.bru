@@ -1,0 +1,15 @@
+meta {
+  name: 07 List Documents
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}/documents?knowledge_base_id={{knowledge_base_id}}&limit=50&offset=0
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

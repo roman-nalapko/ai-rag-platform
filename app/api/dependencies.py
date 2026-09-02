@@ -3,9 +3,19 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import InvalidTokenError, decode_access_token
 from app.db.session import get_db
 from app.models.user import User
+
+
+def require_demo_mode() -> None:
+    """Hide demo-only account and token endpoints when demo mode is disabled."""
+    if not settings.DEMO_MODE_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
 
 
 async def get_current_user(

@@ -25,12 +25,20 @@ async def semantic_search(
 ) -> SearchResponse:
     service = get_search_service(session)
     try:
-        matches = await service.search(
-            request.query,
-            request.limit,
-            request.knowledge_base_id,
-            current_user.id,
-        )
+        if request.hybrid:
+            matches = await service.search_hybrid(
+                request.query,
+                request.limit,
+                request.knowledge_base_id,
+                current_user.id,
+            )
+        else:
+            matches = await service.search(
+                request.query,
+                request.limit,
+                request.knowledge_base_id,
+                current_user.id,
+            )
     except SearchKnowledgeBaseNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

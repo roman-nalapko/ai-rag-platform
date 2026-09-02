@@ -7,8 +7,8 @@ pytest from the repository root:
 
 ```bash
 source venv/bin/activate
-pip install -r requirements.txt
-export JWT_SECRET_KEY=test-secret
+pip install -r requirements.lock
+export JWT_SECRET_KEY=test-secret-key-at-least-32-characters
 pytest
 ```
 
@@ -25,6 +25,10 @@ make test-integration
 the Python import path, and limits discovery to `tests/`.
 
 ## Current coverage
+
+`scripts/measure_coverage.py` provides a lightweight source-line execution
+estimate. It is not a replacement for branch-aware coverage tooling and should
+not be interpreted as an exact coverage percentage.
 
 The fast automated suite covers:
 
@@ -49,16 +53,9 @@ These tests also do not instantiate or call LM Studio or Qdrant.
 
 ## Integration environment
 
-Integration tests live under `tests/integration/` and require real local
-infrastructure:
-
-- SQLAlchemy persistence and Alembic migrations: PostgreSQL 17;
-- document worker extraction and status transitions: PostgreSQL plus test
-  upload storage;
-- embeddings and answer generation: LM Studio with configured models;
-- indexing and semantic retrieval: Qdrant and LM Studio;
-- end-to-end upload, search, QA, conversation history, and SSE streaming: all
-  services with an indexed knowledge base.
+Integration tests live under `tests/integration/` and currently require real
+PostgreSQL 17 and Qdrant services. A live demo additionally requires LM Studio
+with configured chat and embedding models.
 
 Start PostgreSQL and Qdrant, apply migrations, then opt into integration tests:
 
@@ -68,11 +65,21 @@ alembic upgrade head
 make test-integration
 ```
 
+The local defaults and Docker Compose both use the `rag` database. CI overrides
+`DATABASE_URL` and provisions an isolated `rag_test` database.
+
 The integration suite currently verifies Alembic-created PostgreSQL tables,
 document/chunk persistence, Qdrant collection creation, and tenant payload
 filtering. It does not require LM Studio. The default test suite intentionally
 excludes these workflows so it stays fast, deterministic, and suitable for
 running on every code change.
+
+## Simulations versus live E2E
+
+`scripts/verify_rag_e2e.py` and `scripts/benchmark_and_stress_test.py` use
+deterministic simulated LLM/vector operations. They are useful component
+checks, but they do not prove provider latency or live RAG behavior. For a live
+end-to-end check, start all services and run `make demo`.
 
 ## Adding tests
 

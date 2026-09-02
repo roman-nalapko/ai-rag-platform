@@ -5,11 +5,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth import _demo_router as auth_demo_router
 from app.api.auth import router as auth_router
 from app.api.conversations import router as conversations_router
 from app.api.documents import router as documents_router
 from app.api.health import router as health_router
 from app.api.knowledge_bases import router as knowledge_bases_router
+from app.api.metrics import router as metrics_router
 from app.api.qa import router as qa_router
 from app.api.search import router as search_router
 from app.api.users import router as users_router
@@ -53,11 +55,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(RequestLoggingMiddleware)
-app.mount("/demo", StaticFiles(directory="app/web", html=True), name="demo")
+if settings.DEMO_MODE_ENABLED:
+    app.mount("/demo", StaticFiles(directory="app/web", html=True), name="demo")
 
 
 app.include_router(health_router)
+app.include_router(metrics_router)
 app.include_router(auth_router)
+app.include_router(auth_demo_router)
 app.include_router(documents_router)
 app.include_router(search_router)
 app.include_router(qa_router)

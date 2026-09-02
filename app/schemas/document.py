@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+DocumentStatusValue = Literal["pending", "processing", "indexed", "failed"]
+
 
 class DocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -14,7 +16,7 @@ class DocumentResponse(BaseModel):
     content_type: str
     created_at: datetime
     processed: bool
-    status: Literal["pending", "processing", "indexed", "failed"]
+    status: DocumentStatusValue
     error_message: str | None
 
 

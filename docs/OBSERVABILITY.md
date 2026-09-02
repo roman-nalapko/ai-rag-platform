@@ -92,8 +92,25 @@ messages and tracebacks are intentionally excluded because they may contain
 remote response details. Keep new logging calls metadata-only and never attach
 raw model inputs through `extra` fields.
 
+## Prometheus metrics
+
+The API exports real-time operational metrics in standard Prometheus exposition format
+at `/metrics`:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Exported metrics include:
+- `rag_http_requests_total{method="...",path="...",status_code="..."}`: Total HTTP requests counter;
+- `rag_http_request_duration_seconds{method="...",path="..."}`: Latency histogram for HTTP endpoints;
+- `rag_search_duration_seconds`: Histogram of semantic/hybrid search durations;
+- `rag_llm_duration_seconds{operation="..."}`: Histogram of LLM embedding and generation requests;
+- `rag_document_indexing_duration_seconds{outcome="..."}`: Histogram of document ingestion and indexing times;
+- `rag_document_jobs_total{outcome="..."}`: Counter of background document jobs.
+
 ## Current scope
 
-This step provides structured logs, request correlation, and latency signals.
-Metrics scraping, distributed tracing, dashboards, alerting, and retention
+This step provides structured logs, request correlation, Prometheus metrics, and
+latency signals. Distributed tracing, Grafana dashboards, alerting, and retention
 policies remain deployment concerns for a future production profile.

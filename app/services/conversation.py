@@ -46,6 +46,26 @@ class ConversationService:
 
         return conversation
 
+    async def list_for_knowledge_base(
+        self,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Conversation]:
+        knowledge_base = await self._session.get(KnowledgeBase, knowledge_base_id)
+        if knowledge_base is None or knowledge_base.user_id != current_user_id:
+            raise ConversationKnowledgeBaseNotFoundError("Knowledge base not found")
+
+        result = await self._session.execute(
+            select(Conversation)
+            .where(Conversation.knowledge_base_id == knowledge_base_id)
+            .order_by(Conversation.created_at.desc(), Conversation.id)
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(result.scalars().all())
+
     async def get_messages(
         self,
         conversation_id: uuid.UUID,

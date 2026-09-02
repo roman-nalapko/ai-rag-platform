@@ -1,15 +1,21 @@
 import uuid
 from dataclasses import dataclass
+from time import perf_counter
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.metrics import metrics
 from app.llm.lm_studio_client import (
     LMStudioClient,
     LMStudioClientError,
     get_lm_studio_client,
 )
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.models.knowledge_base import KnowledgeBase
+from app.rag.fusion import reciprocal_rank_fusion
 from app.rag.reranker import Reranker, get_reranker
 from app.rag.vector_store import (
     VectorSearchHit,
@@ -69,6 +75,7 @@ class SearchService:
         # inference or Qdrant. QA generation can take minutes on small machines.
         await self._session.rollback()
 
+        started_at = perf_counter()
         try:
             query_vector = await self._embedding_client.embed_text(query)
         except LMStudioClientError as error:
@@ -84,7 +91,73 @@ class SearchService:
             raise SearchVectorStoreError("Qdrant semantic search failed") from error
 
         matches = [self._to_match(hit, knowledge_base_id) for hit in hits]
-        return self._reranker.rerank(query, matches, limit)
+        reranked = self._reranker.rerank(query, matches, limit)
+        metrics.search_duration_seconds.observe(perf_counter() - started_at)
+        return reranked
+
+    async def search_text(
+        self,
+        query: str,
+        limit: int,
+        knowledge_base_id: uuid.UUID,
+    ) -> list[SearchMatch]:
+        try:
+            result = await self._session.execute(
+                select(
+                    DocumentChunk.id,
+                    DocumentChunk.document_id,
+                    DocumentChunk.chunk_index,
+                    Document.filename,
+                    DocumentChunk.content,
+                )
+                .join(Document, Document.id == DocumentChunk.document_id)
+                .where(
+                    Document.knowledge_base_id == knowledge_base_id,
+                    func.to_tsvector("english", DocumentChunk.content).op("@@")(
+                        func.plainto_tsquery("english", query)
+                    ),
+                )
+                .limit(limit)
+            )
+            return [
+                SearchMatch(
+                    document_id=row[1],
+                    chunk_id=row[0],
+                    chunk_index=row[2],
+                    filename=row[3],
+                    content=row[4],
+                    score=1.0,
+                )
+                for row in result.all()
+            ]
+        except Exception:
+            return []
+
+    async def search_hybrid(
+        self,
+        query: str,
+        limit: int,
+        knowledge_base_id: uuid.UUID,
+        current_user_id: uuid.UUID,
+    ) -> list[SearchMatch]:
+        dense_matches = await self.search(
+            query=query,
+            limit=limit * 2,
+            knowledge_base_id=knowledge_base_id,
+            current_user_id=current_user_id,
+        )
+        text_matches = await self.search_text(
+            query=query,
+            limit=limit * 2,
+            knowledge_base_id=knowledge_base_id,
+        )
+        if not text_matches:
+            return dense_matches[:limit]
+        return reciprocal_rank_fusion(
+            [dense_matches, text_matches],
+            k=60,
+            limit=limit,
+        )
 
     @staticmethod
     def _candidate_limit(limit: int) -> int:
@@ -98,9 +171,7 @@ class SearchService:
         knowledge_base_id: uuid.UUID,
     ) -> SearchMatch:
         try:
-            payload_knowledge_base_id = uuid.UUID(
-                str(hit.payload["knowledge_base_id"])
-            )
+            payload_knowledge_base_id = uuid.UUID(str(hit.payload["knowledge_base_id"]))
             if payload_knowledge_base_id != knowledge_base_id:
                 raise ValueError("Knowledge base payload mismatch")
 
