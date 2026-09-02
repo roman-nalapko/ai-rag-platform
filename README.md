@@ -12,10 +12,11 @@
 **Built with:** FastAPI · PostgreSQL · Qdrant · LM Studio · Docker
 
 <p align="center">
-  <img src="docs/screenshots/rag-chat-flow.jpg" alt="AI RAG Platform UI Dashboard" width="100%" />
+  <img src="docs/screenshots/rag-chat-flow.png" alt="AI RAG Platform UI Dashboard" width="100%" />
 </p>
 
 > [!IMPORTANT]
+
 
 > This repository is a local-first engineering project, not a turnkey public
 > SaaS. The built-in user creation and token issuance flows are intentionally
@@ -219,7 +220,7 @@ QA. Set `DEMO_MODE_ENABLED=false` before startup to hide the demo UI, account
 creation endpoint, and demo-token endpoint.
 
 <p align="center">
-  <img src="docs/screenshots/api-documentation.jpg" alt="Interactive OpenAPI Documentation" width="100%" />
+  <img src="docs/screenshots/api-documentation.png" alt="Interactive OpenAPI Documentation" width="100%" />
 </p>
 
 ## Development setup (native API)
@@ -477,7 +478,7 @@ python evaluation/run_eval.py --mode llm-judge --knowledge-base-id YOUR_KB_UUID 
 ```
 
 <p align="center">
-  <img src="docs/screenshots/evaluation-report.jpg" alt="RAG Evaluation Report & Metrics" width="100%" />
+  <img src="docs/screenshots/evaluation-report.png" alt="RAG Evaluation Report & Metrics" width="100%" />
 </p>
 
 Add cases in `evaluation/test_questions.json`. See
