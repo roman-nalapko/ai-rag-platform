@@ -15,6 +15,7 @@ from app.models.user import User
 
 # ── Password hashing unit tests ────────────────────────────────────────────────
 
+
 def test_hash_password_produces_bcrypt_hash() -> None:
     hashed = hash_password("MySecretPassword")
     assert hashed.startswith("$2b$") or hashed.startswith("$2a$")
@@ -42,8 +43,10 @@ def test_hash_password_too_short() -> None:
 
 # ── /auth/register endpoint ────────────────────────────────────────────────────
 
+
 def _make_user(user_id: uuid.UUID, email: str) -> User:
     from types import SimpleNamespace
+
     return SimpleNamespace(id=user_id, email=email, hashed_password=None)  # type: ignore[return-value]
 
 
@@ -59,7 +62,9 @@ async def test_register_creates_user_and_returns_token() -> None:
 
     mock_session.add = MagicMock(side_effect=_add)
     mock_session.commit = AsyncMock()
-    mock_session.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "id", created_user_id))
+    mock_session.refresh = AsyncMock(
+        side_effect=lambda obj: setattr(obj, "id", created_user_id)
+    )
     mock_session.execute = AsyncMock()
 
     async def override_db() -> AsyncIterator[Any]:
@@ -71,7 +76,9 @@ async def test_register_creates_user_and_returns_token() -> None:
 
     try:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.post(
                 "/auth/register",
                 json={"email": "new@example.com", "password": "strongpassword"},
@@ -93,7 +100,9 @@ async def test_register_requires_password_min_length() -> None:
 
     try:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.post(
                 "/auth/register",
                 json={"email": "x@x.com", "password": "short"},
@@ -110,7 +119,9 @@ async def test_register_requires_valid_email() -> None:
 
     try:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.post(
                 "/auth/register",
                 json={"email": "not-an-email", "password": "strongpassword"},
@@ -146,7 +157,9 @@ async def test_login_with_wrong_password_returns_401() -> None:
 
     try:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.post(
                 "/auth/login",
                 json={"email": "user@example.com", "password": "wrong-password"},
@@ -175,7 +188,9 @@ async def test_login_with_nonexistent_user_returns_401() -> None:
 
     try:
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             response = await client.post(
                 "/auth/login",
                 json={"email": "ghost@example.com", "password": "doesnotmatter"},

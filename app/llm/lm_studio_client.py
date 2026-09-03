@@ -45,7 +45,6 @@ class LMStudioClient:
             max_retries=0,
         )
 
-
     async def embed_texts(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
             return []

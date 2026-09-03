@@ -76,4 +76,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()  # type: ignore[call-arg]  # Values are loaded from the environment.
-

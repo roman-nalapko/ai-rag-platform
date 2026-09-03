@@ -10,14 +10,18 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rag")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rag"
+)
 os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
-os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-32-chars-long-minimum-for-local-screenshots!")
+os.environ.setdefault(
+    "JWT_SECRET_KEY", "test-secret-key-32-chars-long-minimum-for-local-screenshots!"
+)
 os.environ.setdefault("DEMO_MODE_ENABLED", "true")
 os.environ.setdefault("DOCUMENT_WORKER_ENABLED", "false")
 
-import uvicorn
-from playwright.async_api import async_playwright
+import uvicorn  # noqa: E402
+from playwright.async_api import async_playwright  # noqa: E402
 
 SCREENSHOTS_DIR = REPO_ROOT / "docs" / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -25,6 +29,7 @@ SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 def run_server():
     from app.main import app
+
     uvicorn.run(
         app,
         host="127.0.0.1",

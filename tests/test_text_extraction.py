@@ -8,6 +8,7 @@ from app.services.text_extraction import DocumentExtractionError, TextExtraction
 
 # ── TXT extraction ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_extract_txt_returns_decoded_content() -> None:
     content = "Hello, RAG platform!"
@@ -42,6 +43,7 @@ async def test_extract_unsupported_content_type_raises() -> None:
 
 # ── PDF extraction ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_extract_pdf_calls_pypdf() -> None:
     """Verify PDF extraction calls PdfReader and joins page text."""
@@ -72,7 +74,9 @@ async def test_extract_pdf_raises_on_pypdf_error() -> None:
     fake_file.read = AsyncMock(return_value=b"not a real pdf")
 
     service = TextExtractionService()
-    with patch("app.services.text_extraction.PdfReader", side_effect=PyPdfError("bad pdf")):
+    with patch(
+        "app.services.text_extraction.PdfReader", side_effect=PyPdfError("bad pdf")
+    ):
         with pytest.raises(DocumentExtractionError, match="PDF"):
             await service.extract(fake_file, "application/pdf")
 
@@ -99,6 +103,7 @@ async def test_extract_pdf_handles_pages_with_no_text() -> None:
 
 
 # ── extract_path ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_extract_path_raises_on_missing_file() -> None:

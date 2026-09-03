@@ -1,23 +1,22 @@
-"""Demonstration of real PDF text extraction, chunking, and RAG QA pipeline."""
-
 import asyncio
 import os
 import sys
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rag_test")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rag_test"
+)
 os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-32-chars-long-minimum!")
 
-from app.services.text_extraction import TextExtractionService
-from app.services.chunking import TextChunkingService
-from app.rag.reranker import KeywordOverlapReranker
-from app.services.search import SearchMatch
-from app.services.qa import RAG_SYSTEM_PROMPT
-import uuid
+from app.rag.reranker import KeywordOverlapReranker  # noqa: E402
+from app.services.chunking import TextChunkingService  # noqa: E402
+from app.services.search import SearchMatch  # noqa: E402
+from app.services.text_extraction import TextExtractionService  # noqa: E402
 
 
 async def main():
@@ -26,7 +25,9 @@ async def main():
     print("=" * 75)
 
     pdf_path = ROOT / "examples" / "sample_document.pdf"
-    print(f"\n1. Reading binary PDF file: {pdf_path.name} ({pdf_path.stat().st_size} bytes)")
+    print(
+        f"\n1. Reading binary PDF file: {pdf_path.name} ({pdf_path.stat().st_size} bytes)"
+    )
 
     # 1. Real PDF extraction via TextExtractionService (using pypdf)
     extractor = TextExtractionService()
@@ -59,25 +60,25 @@ async def main():
 
     # 4. Search and Rerank based on user question
     question = "How is authentication handled and what hashing is used?"
-    print(f"\n3. User Query: \"{question}\"")
-    
+    print(f'\n3. User Query: "{question}"')
+
     reranker = KeywordOverlapReranker()
     retrieved = reranker.rerank(question, matches, limit=1)
-    
+
     print(f"   ✓ Top retrieved chunk from PDF: [Score: {retrieved[0].score:.2f}]")
-    print(f"     \"{retrieved[0].content}\"")
+    print(f'     "{retrieved[0].content}"')
 
     # 5. Formulate Grounded Answer
     print("\n4. Grounded Context passed to LLM:")
     context = f"[Source: {retrieved[0].filename} (chunk #{retrieved[0].chunk_index})]\n{retrieved[0].content}"
-    print(f"   \"\"\"\n{context}\n   \"\"\"")
+    print(f'   """\n{context}\n   """')
 
     print("\n5. LLM Answer (Strictly Grounded in PDF Content):")
     answer = (
         "Based on the uploaded PDF document, high-security authentication is handled "
         "using bcrypt password hashing."
     )
-    print(f"   🤖 Assistant: \"{answer}\"")
+    print(f'   🤖 Assistant: "{answer}"')
     print("\n" + "=" * 75)
     print("✓ Full PDF -> Extraction -> Chunks -> Retrieval -> Grounded QA Verified!")
     print("=" * 75)
