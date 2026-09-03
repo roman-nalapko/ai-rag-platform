@@ -5,7 +5,34 @@ All notable changes to the **AI RAG Platform** project will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-03
+
+### Added
+
+- **Real Password Authentication**:
+  - `POST /auth/register` creates user accounts with `bcrypt` password hashing (minimum 8 characters).
+  - `POST /auth/login` verifies credentials with constant-time equality check to prevent email enumeration attacks.
+  - New Alembic migration `20260901_0006_user_auth_fields.py` adding `hashed_password` column to `users` table.
+  - Backward-compatible demo token endpoint preserved for evaluation workflows.
+- **Redesigned Themeable Web Demo Interface (`/demo/`)**:
+  - Authentication Gate with interactive Sign In / Create Account tabs.
+  - Dark 🌙 and Light ☀️ theme toggle with CSS variable design system.
+  - Client session persistence in `localStorage` with automatic signout on JWT expiration.
+  - Real-time loading spinners on async action buttons and instant event log copy to clipboard.
+- **Comprehensive RAG Quality Evaluation**:
+  - Added `--mode llm-judge` to `evaluation/run_eval.py` scoring answer faithfulness and relevance from 0 to 10 via LLM.
+  - Expanded test dataset in `evaluation/test_questions.json` to 12 questions covering domain facts, multi-tenancy, and anti-hallucination guards.
+  - Added comprehensive guide in `evaluation/README.md`.
+- **Cloud Deployment & Multi-Provider Support**:
+  - Configurable `LLM_PROVIDER=lm_studio|openai` allowing zero-local-GPU cloud deployments using OpenAI `gpt-4o-mini` and `text-embedding-3-small`.
+  - Comprehensive cloud deployment guide in `docs/DEPLOYMENT_CLOUD.md` for Railway, Render, VPS, and Qdrant Cloud.
+- **Expanded Test Coverage**:
+  - Unit test suite expanded to 118 tests covering auth registration/login, text chunking, and document extraction.
+- **Real Screenshots**:
+  - Embedded high-DPI screenshots of the live UI dashboard, OpenAPI/Swagger documentation, and evaluation runner in `README.md`.
+
 ## [1.0.0] - 2026-08-26
+
 
 ### Added
 

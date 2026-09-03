@@ -192,8 +192,11 @@ module and data-flow description.
 | `GET`  | `/health/ready`                | PostgreSQL and Qdrant readiness                 |
 | `GET`  | `/health/llm`                  | LM Studio embedding health and dimensions       |
 | `GET`  | `/metrics`                     | Prometheus metrics exporter                     |
-| `POST` | `/users`                       | Create a user account record                    |
+| `POST` | `/auth/register`               | Register a new user account with password       |
+| `POST` | `/auth/login`                  | Authenticate with email/password and obtain JWT |
+| `POST` | `/users`                       | Create a user account record (demo mode)        |
 | `POST` | `/auth/demo-token`             | Issue a local demo JWT for an existing user     |
+
 | `POST` | `/knowledge-bases`             | Create a user-owned knowledge base              |
 | `GET`  | `/knowledge-bases?user_id=...&limit=50&offset=0` | List one user's knowledge bases |
 | `GET`  | `/knowledge-bases/{id}`        | Get knowledge base details                      |
@@ -598,23 +601,24 @@ For implementation-level planning, priorities, and acceptance criteria, see the
 ### V1 — production hardening
 
 - [x] Infrastructure-backed integration tests in CI
-- [ ] Durable Celery/Redis ingestion queue and upload-size limits
+- [x] Durable PostgreSQL-backed ingestion queue (SKIP LOCKED) and upload-size limits
 - [x] Document listing, retry, and deletion APIs
 - [x] Knowledge base retrieval and cascading deletion APIs
 - [x] Conversation listing and multi-turn session persistence
 - [x] Prometheus metrics exporter and request correlation
-- [ ] Embedding task prefixes and stale-vector detection after model changes
+- [x] Embedding vector dimension validation and model metadata tracking
 
 ### V2 — platform capabilities
 
+- [x] Real user registration & password authentication (bcrypt + JWT)
 - [x] Hybrid retrieval (dense vectors + sparse text) and Reciprocal Rank Fusion (RRF)
-- [x] Demo JWT authentication and user-level tenant checks
+- [x] Multi-tenant knowledge base isolation and user-level tenant checks
 - [x] Multilingual Unicode-aware tokenization
 - [x] Batch chunk embedding optimization
 - [x] Structured SSE events with source citations
-- [ ] Retrieval and answer quality evaluations
-- [x] Pluggable LLM and embedding providers (OpenAI-compatible)
-- [ ] Deployment profiles for local, staging, and production environments
+- [x] Retrieval and answer quality evaluations (Keyword + LLM-as-a-judge)
+- [x] Pluggable LLM and embedding providers (LM Studio & OpenAI-compatible cloud)
+- [x] Deployment profiles for local, staging, and production environments (Docker, Railway, Render, VPS)
 
 ## Current limitations
 
@@ -623,11 +627,11 @@ For implementation-level planning, priorities, and acceptance criteria, see the
   run the worker in-process, while Docker Compose runs a separate worker
   container.
 - Raw uploads use local filesystem storage and are not shared across replicas.
-- Authentication is local demo JWT only; production password login, refresh
-  tokens, OAuth, and organization roles are future work.
-- Requests still identify the target knowledge base explicitly, but services
+- Authentication supports user registration and login with bcrypt-hashed passwords and JWT; OAuth and organization role-based access control (RBAC) are future work.
+- Requests identify the target knowledge base explicitly, and services
   verify that it belongs to the authenticated user.
-- Answer quality depends on the selected local models and indexed documents.
+- Answer quality depends on the selected models and indexed documents.
+
 
 ## License
 
